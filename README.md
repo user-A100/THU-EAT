@@ -11,11 +11,20 @@
 ### 数据看板
 总支出、本月/今日/本周/本年支出、笔均消费、活跃天数、最大单笔。消费趋势柱状图（日/周/月/年）、分类占比饼图、日历热力图。
 
+![数据看板](static/screenshots/dashboard.png)
+![数据看板-趋势](static/screenshots/dashboard2.png)
+
 ### 成就勋章 & EATi 个性画像
 消费额度、频次、食堂广度、窗口忠诚度、早起鸟、夜猫子等 **16 种可升级勋章**。基于你的消费习惯生成专属 **EATi 吃货人格**（共 21 种）。
 
+![勋章系统](static/screenshots/achi.png)
+![勋章详情](static/screenshots/achi2.png)
+![EATi 个性画像](static/screenshots/eati.png)
+
 ### 地点统计
 窗口 / 食堂双模式切换，按金额/笔数/笔均排序，搜索筛选，看你最爱去哪吃。
+
+![地点统计](static/screenshots/dash2.png)
 
 ### 消费明细 & 导出
 分页浏览、关键词搜索、分类筛选。一键导出 CSV，Excel 直接打开。
