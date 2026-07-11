@@ -115,13 +115,21 @@ python3 app.py
 4. 左侧找到 **Cookies** → 点开 → 点 `card.tsinghua.edu.cn`
 5. 右边列表里找到 **`servicehall`** 这一行 → 双击它的 **Value** → 全选复制
 
+![获取servicehall步骤1](static/screenshots/03.png)
+![获取servicehall步骤2](static/screenshots/04.png)
+
 ### 2. 填到程序里
 
 在程序页面点头像进入「**配置与同步**」→ 把刚复制的 servicehall 值粘贴到「Cookie」输入框 → 填上学号 → 点「**保存配置**」
 
+![配置页面](static/screenshots/01.png)
+![配置保存](static/screenshots/02.png)
+
 ### 3. 同步数据
 
 点「**全部导入**」或「**近一年**」按钮 → 等待几秒 → 切到「数据看板」就能看到你的真实消费统计了。
+
+![登录导入同步](static/screenshots/05.png)
 
 > servicehall 过几个小时会过期。过期后再同步会报错，重新获取粘贴就行，本地数据不会丢。
 
