@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>THU-EAT · 清华校园卡消费统计</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/echarts.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="/static/logo-icon.svg" class="logo-icon-img" alt="">
+      <img src="/static/logo-wordmark.svg" class="logo-wordmark" alt="THU-EAT">
+    </div>
+    <nav class="tabs">
+      <button class="tab active" data-tab="dashboard">数据看板</button>
+      <button class="tab" data-tab="locations">地点统计</button>
+      <button class="tab" data-tab="achievements">成就系统</button>
+      <button class="tab" data-tab="ebti">EATi</button>
+    </nav>
+    <div class="user-menu">
+      <button class="user-btn" id="user-btn">👤</button>
+      <div class="user-dropdown hidden" id="user-dropdown">
+        <div class="avatar-pick">
+          <span class="avatar-opt" data-emoji="👤">👤</span>
+          <span class="avatar-opt" data-emoji="🐱">🐱</span>
+          <span class="avatar-opt" data-emoji="🐶">🐶</span>
+          <span class="avatar-opt" data-emoji="🐼">🐼</span>
+          <span class="avatar-opt" data-emoji="🦊">🦊</span>
+          <span class="avatar-opt" data-emoji="🐧">🐧</span>
+        </div>
+        <button class="dropdown-item" data-tab="sync">⚙️ 配置与同步</button>
+        <button class="dropdown-item" data-tab="rules">📋 分类规则</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ 数据看板 ============ -->
+  <main class="page" id="page-dashboard">
+    <div class="filters">
+      <div class="field">
+        <span class="label">快速统计</span>
+        <input type="number" id="f-num" value="1" min="1" style="width:70px;display:none">
+        <select id="f-unit">
+          <option value="day">天</option>
+          <option value="week">周</option>
+          <option value="month">月</option>
+          <option value="year">年</option>
+          <option value="all" selected>全部</option>
+        </select>
+      </div>
+      <div class="field">
+        <button class="btn primary" id="f-all-data">📊 全部数据</button>
+      </div>
+      <div class="field">
+        <label class="toggle-label"><input type="checkbox" id="f-custom-toggle"> 自定义范围</label>
+      </div>
+      <div class="field hidden" id="f-custom-wrap">
+        <input type="text" id="f-start" placeholder="yyyy/MM/dd" maxlength="10" style="width:110px">
+        <span class="sep">至</span>
+        <input type="text" id="f-end" placeholder="yyyy/MM/dd" maxlength="10" style="width:110px">
+      </div>
+      <span class="range-hint" id="range-hint"></span>
+      <button class="btn" id="btn-export" title="导出当前筛选结果为 CSV">📥 导出数据</button>
+    </div>
+
+    <section class="cards" id="cards"></section>
+
+    <section class="charts">
+      <div class="chart-card span-2">
+        <h3 class="card-title">消费趋势
+          <select id="trend-gran" style="margin-left:10px;width:auto;font-size:12px">
+            <option value="day">日</option><option value="week">周</option>
+            <option value="month" selected>月</option><option value="year">年</option>
+          </select>
+          <input type="number" id="trend-n" value="10" min="1" max="60" style="margin-left:6px;width:50px;font-size:12px">
+          <span style="font-weight:400;font-size:12px;color:var(--ink-muted)">条</span>
+        </h3>
+        <div id="chart-time" class="chart"></div>
+      </div>
+      <div class="chart-card">
+        <h3 class="card-title">分类占比</h3>
+        <div id="chart-cat" class="chart"></div>
+      </div>
+      <div class="chart-card span-3">
+        <h3 class="card-title">消费热力图
+          <select id="heat-year" style="margin-left:10px;width:auto;font-size:12px">
+            <option value="12m" selected>近12个月</option>
+          </select>
+        </h3>
+        <div id="chart-heat" class="chart"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h3 class="card-title">消费明细 <em id="detail-count"></em> <em id="detail-sum"></em> <em id="detail-recharge"></em></h3>
+        <div class="detail-filter">
+          <input id="d-keyword" placeholder="搜索窗口 / 摘要 / 地点 / 日期">
+          <select id="d-category"><option value="">全部分类</option></select>
+          <input type="number" id="d-num" value="1" min="1" style="width:55px;display:none">
+          <select id="d-unit">
+            <option value="day">天</option><option value="week">周</option>
+            <option value="month">月</option><option value="year">年</option>
+            <option value="all" selected>全部</option>
+          </select>
+          <label class="toggle-label"><input type="checkbox" id="d-custom-toggle"> 自定义</label>
+          <span class="hidden" id="d-custom-wrap">
+            <input type="text" id="d-start" placeholder="yyyy/MM/dd" maxlength="10" style="width:105px">
+            <input type="text" id="d-end" placeholder="yyyy/MM/dd" maxlength="10" style="width:105px">
+          </span>
+          <button class="btn" id="d-search">搜索</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="table">
+          <thead>
+            <tr><th>时间</th><th>窗口</th><th>地点</th><th>分类</th><th class="num">金额</th><th>摘要</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <button class="btn" id="d-prev">上一页</button>
+        <span id="d-page"></span>
+        <button class="btn" id="d-next">下一页</button>
+        <span class="page-jump">
+          跳至 <input type="text" id="d-jump-page" placeholder="页码" maxlength="5" style="width:56px"> 页
+          <button class="btn" id="d-jump-btn">GO</button>
+        </span>
+      </div>
+    </section>
+
+    <!-- 反馈与交流 -->
+    <section class="panel" style="text-align:left;margin-top:20px">
+      <h3 class="card-title">反馈与交流</h3>
+      <p class="muted" style="margin-bottom:12px">遇到 Bug 或有新功能灵感？想分享校内外美食情报？欢迎加群一起完善 THU-EAT，<b style="color:var(--accent)">美食社区</b>板块期待你的输入。QQ 群号：<span style="color:var(--accent);font-weight:800;letter-spacing:2px">1057549311</span></p>
+    </section>
+  </main>
+
+  <!-- ============ 地点统计 ============ -->
+  <main class="page hidden" id="page-locations">
+    <section class="chart-card" style="margin-bottom:16px">
+      <h3 class="card-title">地点排行
+        <select id="loc-chart-group" style="margin-left:10px;width:auto;font-size:12px">
+          <option value="window">窗口排行</option>
+          <option value="cafeteria">食堂排行</option>
+        </select>
+        <span style="font-weight:400;font-size:12px;color:var(--ink-muted)" id="loc-top-label">Top 15</span>
+      </h3>
+      <div id="chart-loc" class="chart" style="height:380px"></div>
+      <div class="loc-range-note" id="loc-range-note">当前统计范围：全部数据</div>
+    </section>
+    <section class="panel">
+      <div class="panel-head">
+        <h3 class="card-title">消费地点统计 <em id="loc-count"></em></h3>
+        <div class="location-search">
+          <select id="loc-group" style="width:auto">
+            <option value="window">窗口统计</option>
+            <option value="cafeteria">食堂统计</option>
+          </select>
+          <input id="loc-keyword" placeholder="🔍 搜索（支持模糊匹配）" list="loc-datalist" autocomplete="off">
+          <datalist id="loc-datalist"></datalist>
+          <button class="btn primary" id="loc-search">搜索</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="loc-table">
+          <colgroup>
+            <col style="width:2.8em">
+            <col><col><col><col><col><col><col>
+          </colgroup>
+          <thead>
+            <tr><th>#</th><th>商户</th><th>地址</th><th>分类</th><th class="num">笔数</th><th class="num">笔均</th><th class="num">总额</th><th class="num">占比</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <button class="btn" id="loc-prev">上一页</button>
+        <span id="loc-page"></span>
+        <button class="btn" id="loc-next">下一页</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ 成就系统 ============ -->
+  <main class="page hidden" id="page-achievements">
+    <section class="panel" style="margin-bottom:20px">
+      <h3 class="card-title">🎖️ 勋章架 <em id="badge-count"></em></h3>
+      <p class="muted" style="margin-bottom:16px">根据你的真实消费数据授予，继续探索解锁更多勋章</p>
+      <div class="badge-shelf" id="badge-shelf"></div>
+    </section>
+    <section class="panel" style="text-align:center;margin-bottom:20px">
+      <h3 class="card-title">🎡 今天吃什么</h3>
+      <p class="muted" style="margin-bottom:12px">选择困难？让转盘帮你决定</p>
+      <div class="wheel-layout">
+        <div class="wheel-center" id="wheel-center">
+          <div style="position:relative;display:inline-block">
+            <canvas id="wheel-canvas" width="340" height="340" style="max-width:100%"></canvas>
+            <div id="wheel-pointer" style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:28px">▼</div>
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <div class="mode-selector" style="margin-bottom:8px">
+            <button class="mode-btn active" data-mode="wheel">🎰 转盘</button>
+            <button class="mode-btn" data-mode="card">🃏 抽卡</button>
+          </div>
+          <button class="btn primary" id="wheel-spin" style="font-size:16px;padding:10px 24px">🎰 开始</button>
+        </div>
+        <div id="wheel-result" style="margin-top:8px;font-size:18px;font-weight:700;color:var(--accent)"></div>
+        <div id="card-area" class="hidden" style="margin-top:12px">
+          <div class="card-draw-grid" id="card-grid"></div>
+          <button class="btn primary" id="card-reveal" style="margin-top:10px;font-size:16px;padding:10px 28px">✨ 翻牌</button>
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <div class="wheel-side-title" id="wheel-side-title">📋 推荐菜品</div>
+        <div id="wheel-dishes" class="wheel-dish-cloud"></div>
+      </div>
+    </section>
+    <section class="panel">
+      <h3 class="card-title">🏆 吃货成就 <em id="ach-count"></em>
+        <button class="btn" id="map-btn" style="margin-left:12px;font-size:13px">🗺️ 食堂地图</button></h3>
+      <p class="muted" style="margin-bottom:16px">探索清华每一座食堂，解锁全部成就</p>
+      <div class="ach-grid" id="ach-grid"></div>
+      <div id="ach-title" class="ach-title hidden"></div>
+    </section>
+  </main>
+
+  <!-- ============ EATi ============ -->
+  <main class="page hidden" id="page-ebti">
+    <!-- 问卷区域 -->
+    <section class="panel" id="ebti-quiz" style="max-width:900px;margin:0 auto 20px">
+      <h3 class="card-title">Eating Appetite Type Indicator</h3>
+      <p class="muted" style="margin-bottom:20px">通过 30 道情境题，从认知决策、情绪动机、社交行为、习惯计划与价值观五个维度，解码你的饮食人格。</p>
+      <div class="ebti-progress" style="margin-bottom:20px">
+        <div class="ebti-progress-bar" id="ebti-progress-bar" style="width:0%"></div>
+      </div>
+      <div id="ebti-question">
+        <h4 class="ebti-q-title" id="ebti-q-title"></h4>
+        <div class="ebti-options" id="ebti-options"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:18px">
+        <button class="btn" id="ebti-prev" style="display:none">← 上一题</button>
+        <button class="btn danger" id="ebti-restart">🔄 重新开始</button>
+        <span id="ebti-q-num" style="color:var(--ink-muted);font-size:13px;align-self:center"></span>
+        <button class="btn primary" id="ebti-next">下一题 →</button>
+      </div>
+      <div style="margin-top:14px;padding:10px 14px;border-radius:10px;background:var(--surface-2);border:1px dashed var(--border);font-size:13px;color:var(--ink-muted);text-align:center">
+        💡 小贴士：可按数字键 <b style="color:var(--accent)">1-5</b> 快速选择选项，<b style="color:var(--accent)">Enter</b> 或 <b style="color:var(--accent)">→</b> 进入下一题，<b style="color:var(--accent)">←</b> 返回上一题，<b style="color:var(--accent)">↑↓</b> 浏览选项
+      </div>
+    </section>
+
+    <!-- 结果区域（答题后显示） -->
+    <section class="panel hidden" id="ebti-result" style="max-width:900px;margin:0 auto 20px">
+      <!-- 顶栏：左AI画像 + 右主类型 -->
+      <div class="ebti-top-row">
+        <div class="ebti-portrait-box" id="ebti-portrait">
+          <div class="ebti-portrait-icon">🤖</div>
+          <div class="ebti-portrait-label">AI 饮食性格画像<br><span style="font-weight:400;font-size:12px;opacity:0.7">即将上线</span></div>
+        </div>
+        <div class="ebti-type-box" id="ebti-type-badge">
+          <div class="ebti-type-icon" id="ebti-type-icon"></div>
+          <div class="ebti-type-tag">你的主类型</div>
+          <div class="ebti-type-en" id="ebti-type-en"></div>
+        </div>
+      </div>
+      <!-- 人格解读 -->
+      <h4 class="ebti-section-title">📖 人格解读</h4>
+      <div class="ebti-interp" id="ebti-interp"></div>
+      <!-- 五维雷达图 -->
+      <h4 class="ebti-section-title">📊 五维雷达</h4>
+      <div class="ebti-chart-wrap"><div id="ebti-radar" style="width:100%;height:400px"></div></div>
+      <!-- 维度卡片 -->
+      <div id="ebti-profile" style="margin-top:12px"></div>
+      <!-- 友情提示（独立框） -->
+      <h4 class="ebti-section-title">友情提示</h4>
+      <div class="ebti-disclaimer">
+        <p><b>本测试仅供娱乐，无实际参考价值！</b></p>
+        <p style="font-weight:700;color:var(--accent);font-size:15px">不喜欢该类型欢迎重测，我命由我不由天！</p>
+        <p>关于这个测试，我无法很好的平衡娱乐和专业性，一些人格的阐释较为模糊或完全不准（如 GOBL 可能并非真哥布林），如有冒犯非常抱歉。作为一个随性的业余项目，它还有很多打磨空间，后续会慢慢完善。总之好玩为主，还请不要商用盈利。</p>
+      </div>
+      <!-- 作者的话（独立框，默认折叠） -->
+      <details class="ebti-collapse">
+        <summary class="ebti-section-title">作者的话</summary>
+        <div class="ebti-disclaimer">
+          <p>本 EATi 测试首发于 <a href="https://github.com/user-A100/THU-EAT" target="_blank"><b>THU-EAT</b></a>，初衷是在开发校园卡记账系统的同时增加一些趣味性。</p>
+          <p>作者人格是 <b>OOOO</b>，所以开发的可能比较随意，如有不满意的地方欢迎批判，我会 OOOO！</p>
+        </div>
+      </details>
+      <!-- 致谢（独立框，默认折叠） -->
+      <details class="ebti-collapse">
+        <summary class="ebti-section-title">致谢</summary>
+        <div class="ebti-disclaimer">
+          <p>本测试受 <b>SBTI</b> 启发，感谢 B站UP主 <b>Q肉儿串儿</b>（UID417038183）的开创性工作。</p>
+        </div>
+      </details>
+      <button class="btn primary" id="ebti-retest" style="display:block;margin:20px auto 0;font-size:16px;padding:12px 32px">🔄 重新测试</button>
+    </section>
+  </main>
+
+  <!-- ============ 配置与同步 ============ -->
+  <main class="page hidden" id="page-sync">
+    <section class="panel narrow">
+      <h3 class="card-title">账号配置</h3>
+      <p class="muted">数据全程保存在本机，不会上传任何服务器。</p>
+      <div class="form-row">
+        <label>学号</label>
+        <input type="text" id="c-idserial" placeholder="如 2024xxxxxxx">
+      </div>
+      <div class="form-row">
+        <label>servicehall Cookie</label>
+        <textarea id="c-servicehall" rows="2" placeholder="粘贴 servicehall Cookie 值或完整 Cookie 串"></textarea>
+        <small class="muted" id="c-current">当前：未设置</small>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="c-save">保存配置</button>
+        <button class="btn danger" id="c-logout">退出登录</button>
+      </div>
+    </section>
+
+    <section class="panel narrow">
+      <h3 class="card-title">同步校园卡数据</h3>
+      <p class="muted">登录成功后点击下方按钮即可自动拉取数据，无需手动设置日期。</p>
+      <div class="btn-row">
+        <button class="btn primary" id="s-sync-all">全部导入</button>
+        <button class="btn" id="s-sync-year">近一年</button>
+        <button class="btn" id="s-sync-month">近一月</button>
+        <span class="muted" id="s-result"></span>
+      </div>
+      <div class="btn-row">
+        <label class="toggle-label"><input type="checkbox" id="s-auto-sync"> 自动同步（每 30 分钟拉取新数据）</label>
+        <span class="muted" id="s-auto-status"></span>
+      </div>
+      <p class="muted" id="s-status"></p>
+    </section>
+
+    <section class="panel narrow">
+      <h3 class="card-title">如何获取 Cookie</h3>
+      <ol class="steps">
+        <li>电脑浏览器打开 <a href="https://card.tsinghua.edu.cn/" target="_blank">card.tsinghua.edu.cn</a>，完成清华统一身份认证登录（含双因子）。</li>
+        <li>登录后按 <kbd>F12</kbd> → 顶部「<b>应用程序 / Application</b>」标签 → 左侧 <b>Cookies</b> → 选 <code>card.tsinghua.edu.cn</code>。</li>
+        <li>找到名为 <code>servicehall</code> 的条目 → 双击其 <b>Value</b> → <kbd>Ctrl+C</kbd> 复制。</li>
+        <li>粘贴到上方输入框，填好学号，点「保存配置」后点同步按钮。</li>
+      </ol>
+      <p class="muted">cookie 会过期（数小时～1 天）。过期后重复上述步骤即可，历史数据不会丢失。</p>
+    </section>
+
+    <section class="panel narrow">
+      <h3 class="card-title">示例数据 / 重置</h3>
+      <p class="muted">未拿到 cookie 前，可先加载示例数据体验完整统计效果。</p>
+      <div class="btn-row">
+        <button class="btn" id="m-load">加载 4 个月示例数据</button>
+        <button class="btn danger" id="m-reset">清空所有数据</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ 分类规则 ============ -->
+  <main class="page hidden" id="page-rules">
+    <section class="panel narrow">
+      <h3 class="card-title">新增分类规则</h3>
+      <p class="muted">当商户名（或交易类型/摘要）包含某关键词时，归入对应分类。匹配按关键词长度倒序，更具体的优先。</p>
+      <div class="form-row inline">
+        <input type="text" id="r-keyword" placeholder="关键词，如 紫荆">
+        <input type="text" id="r-category" placeholder="分类，如 食堂">
+        <button class="btn primary" id="r-add">添加</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="r-rebuild">用最新规则重新分类全部数据</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h3 class="card-title">现有规则 <em id="rules-count"></em></h3>
+      <div class="table-wrap">
+        <table id="rules-table">
+          <thead><tr><th>关键词</th><th>分类</th><th class="num">操作</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- 食堂地图灯箱 -->
+  <div id="map-lightbox" class="map-lightbox hidden">
+    <div class="map-lightbox-close" id="map-close">✕</div>
+    <img src="/static/Cant.png" alt="食堂分布地图" class="map-img" id="map-img">
+  </div>
+  <div id="toast" class="toast hidden"></div>
+  <div id="modal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-icon" id="modal-icon">❓</div>
+      <div class="modal-title" id="modal-title">提示</div>
+      <div class="modal-msg" id="modal-msg"></div>
+      <div class="modal-actions">
+        <button class="btn modal-cancel" id="modal-cancel">取消</button>
+        <button class="btn primary modal-ok" id="modal-ok">确定</button>
+      </div>
+    </div>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

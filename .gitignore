@@ -1,0 +1,27 @@
+# 用户数据（含 cookie、学号、消费记录），切勿提交或分享
+data/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# 编辑器
+.idea/
+.vscode/
+*.swp
+
+# PyInstaller 构建产物
+build/
+dist/
+*.spec.bak
+
+# Claude Code
+.claude/
+
+# 系统
+.DS_Store
+Thumbs.db
