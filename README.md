@@ -49,13 +49,18 @@
 
 ## 🪟 Windows 用户请看这里（最简单）
 
+> 💡 **启动速度提示**：`THUeat.exe` 每次启动都要解压内置文件，**比较慢**（黑窗口会停一会儿才弹出页面）。如果你会装 Python、能用命令行，推荐走 **`start.bat`** 那条路，**快很多**：
+> 1. 安装 [Python 3.8+](https://www.python.org/downloads/)（安装时勾选 **Add Python to PATH**）
+> 2. 下载本仓库源码：`git clone https://github.com/user-A100/THU-EAT.git`（或网页上点绿色 `Code` → `Download ZIP` 解压）
+> 3. 进入文件夹，双击 `start.bat`（首次会自动安装依赖，之后就秒开）
+
 ### 第一步：下载
 
-去右侧 [Releases](https://github.com/user-A100/THU-EAT/releases) → 下载 `EatStat.exe`
+去右侧 [Releases](https://github.com/user-A100/THU-EAT/releases) → 下载 `THUeat.exe`
 
 ### 第二步：双击打开
 
-双击 `EatStat.exe`，会弹出一个黑窗口（不要关），然后浏览器自动打开一个页面。
+双击 `THUeat.exe`，会弹出一个黑窗口（不要关），然后浏览器自动打开一个页面。
 
 ### 第三步：加载示例数据
 
@@ -63,7 +68,7 @@
 
 ### 以后想用了
 
-再双击 `EatStat.exe` 就行。（需要自己重新同步数据）
+再双击 `THUeat.exe` 就行。（需要自己重新同步数据）
 
 ---
 
@@ -90,7 +95,7 @@ pip3 install -r requirements.txt
 python3 app.py
 ```
 
-最后一行出现 `Eat_stat 已启动` 就说明成功了，浏览器会自动打开。
+最后一行出现 `THUeat 已启动` 就说明成功了，浏览器会自动打开。
 
 ### 第三步：加载示例数据
 
@@ -149,6 +154,9 @@ python3 app.py
 
 **Q：黑窗口能关吗？**
 A：关了程序就停了。不用的时候再关。
+
+**Q：图标/图表缩成一团、排版乱了？**
+A：偶尔图表在容器尺寸还没算好时就先渲染了，会挤在一起。刷新一下页面（按 F5）就恢复正常。
 
 **Q：同步报错"cookie 已过期"？**
 A：Cookie 过期了，重新去 card.tsinghua.edu.cn 登录，复制新的 Cookie 粘贴进去。

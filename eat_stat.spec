@@ -6,9 +6,10 @@ from pathlib import Path
 
 # 需要打包进 EXE 的数据目录（格式: ('源路径', '目标路径')）
 # Windows 分隔符用 ;（不用 :）
+# ⚠️ 不打包 data/：那是用户私人数据（cookie/学号/消费记录）。运行时改读写
+# EXE 同目录的 data/（见 config.py 的 sys.frozen 分支），打包进去会泄露开发者本机数据。
 datas = [
     ('static', 'static'),
-    ('data', 'data'),
 ]
 
 # 动态导入（PyInstaller 静态分析发现不了）
@@ -43,7 +44,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='EatStat',
+    name='THUeat',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -56,5 +57,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,             # 如需图标可指定 .ico 路径
+    icon='gogo.ico',       # 程序图标（gogo 吉祥物，多分辨率 16~256）
 )

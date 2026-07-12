@@ -4,14 +4,24 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>THU-EAT · 清华校园卡消费统计</title>
+  <script>
+    // 反闪：首屏绘制前按存储偏好 / 系统主题设置 data-theme
+    (function () {
+      var t = localStorage.getItem("thueat_theme");
+      if (t !== "light" && t !== "dark") {
+        t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
   <link rel="stylesheet" href="/static/style.css">
   <script src="/static/echarts.min.js"></script>
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
-      <img src="/static/logo-icon.svg" class="logo-icon-img" alt="">
-      <img src="/static/logo-wordmark.svg" class="logo-wordmark" alt="THU-EAT">
+      <img src="/static/gogo-removebg-preview.svg" class="logo-icon-img" alt="">
+      <img src="/static/thueat.svg" class="logo-wordmark" alt="THU-EAT">
     </div>
     <nav class="tabs">
       <button class="tab active" data-tab="dashboard">数据看板</button>
@@ -20,6 +30,7 @@
       <button class="tab" data-tab="ebti">EATi</button>
     </nav>
     <div class="user-menu">
+      <button class="theme-toggle" id="theme-toggle" title="切换深色/浅色模式">🌙</button>
       <button class="user-btn" id="user-btn">👤</button>
       <div class="user-dropdown hidden" id="user-dropdown">
         <div class="avatar-pick">
@@ -32,6 +43,7 @@
         </div>
         <button class="dropdown-item" data-tab="sync">⚙️ 配置与同步</button>
         <button class="dropdown-item" data-tab="rules">📋 分类规则</button>
+        <button class="dropdown-item" id="check-update-item">🔄 检查更新</button>
       </div>
     </div>
   </header>
@@ -189,7 +201,7 @@
   <main class="page hidden" id="page-achievements">
     <section class="panel" style="margin-bottom:20px">
       <h3 class="card-title">🎖️ 勋章架 <em id="badge-count"></em></h3>
-      <p class="muted" style="margin-bottom:16px">根据你的真实消费数据授予，继续探索解锁更多勋章</p>
+      <p class="muted" style="margin-bottom:16px">根据你的真实消费数据授予，勋章可升级。点击任一勋章查看升级路径，继续探索解锁更多。</p>
       <div class="badge-shelf" id="badge-shelf"></div>
     </section>
     <section class="panel" style="text-align:center;margin-bottom:20px">

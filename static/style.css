@@ -26,31 +26,30 @@
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.05);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --page: #0d0d0d;
-    --surface: #1a1a19;
-    --surface-2: #232321;
-    --ink-primary: #ffffff;
-    --ink-secondary: #c3c2b7;
-    --ink-muted: #898781;
-    --gridline: #2c2c2a;
-    --baseline: #383835;
-    --border: rgba(255, 255, 255, 0.10);
-    --accent: #B87FD9;           /* 清华紫 · 暗色模式 */
-    --accent-hover: #C996E6;
-    --danger: #e66767;
-    --good: #0ca30c;
-    --series-1: #B87FD9;
-    --series-2: #199e70;
-    --series-3: #c98500;
-    --series-4: #008300;
-    --series-5: #7cc4f0;
-    --series-6: #e66767;
-    --series-7: #d55181;
-    --series-8: #d95926;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.35);
-  }
+/* 深色模式：由 data-theme="dark" 驱动（手动切换或跟随系统，见 index.html 内联脚本） */
+:root[data-theme="dark"] {
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-2: #232321;
+  --ink-primary: #ffffff;
+  --ink-secondary: #c3c2b7;
+  --ink-muted: #898781;
+  --gridline: #2c2c2a;
+  --baseline: #383835;
+  --border: rgba(255, 255, 255, 0.10);
+  --accent: #B87FD9;           /* 清华紫 · 暗色模式 */
+  --accent-hover: #C996E6;
+  --danger: #e66767;
+  --good: #0ca30c;
+  --series-1: #B87FD9;
+  --series-2: #199e70;
+  --series-3: #c98500;
+  --series-4: #008300;
+  --series-5: #7cc4f0;
+  --series-6: #e66767;
+  --series-7: #d55181;
+  --series-8: #d95926;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
 * { box-sizing: border-box; }
@@ -93,7 +92,7 @@ code, kbd {
 .brand .logo-wordmark { height: 30px; width: auto; flex-shrink: 0; margin-left: 8px; }
 
 /* ---------- 用户菜单 ---------- */
-.user-menu { position: relative; margin-left: auto; }
+.user-menu { position: relative; margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .user-btn {
   width: 36px; height: 36px; border-radius: 50%;
   border: 1px solid var(--border); background: var(--surface-2);
@@ -101,6 +100,13 @@ code, kbd {
   transition: background 0.15s;
 }
 .user-btn:hover { background: var(--border); }
+.theme-toggle {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--surface-2);
+  font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.theme-toggle:hover { background: var(--border); }
 .user-dropdown {
   position: absolute; right: 0; top: 44px;
   background: var(--surface); border: 1px solid var(--border);
@@ -602,8 +608,8 @@ td.amount { font-variant-numeric: tabular-nums; }
 .ebti-type-en {
   font-size: 36px; font-weight: 800; color: var(--accent); letter-spacing: 2px; line-height: 1.2;
 }
-.ebti-type-cn { font-size: 22px; font-weight: 700; color: var(--ink-primary); }
-.ebti-type-abbr { font-size: 40px; font-weight: 800; color: var(--accent); letter-spacing: 3px; text-align: center; margin-top: 4px; }
+.ebti-type-abbr { font-size: 40px; font-weight: 800; color: var(--accent); letter-spacing: 3px; text-align: center; }
+.ebti-type-cn { font-size: 16px; font-weight: 500; color: var(--ink-secondary); letter-spacing: normal; margin-top: 8px; }
 /* 区块标题 */
 .ebti-section-title { font-size: 16px; font-weight: 700; color: var(--ink-primary); margin: 24px 0 10px; padding-left: 4px; }
 /* 人格解读 */

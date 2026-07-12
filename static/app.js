@@ -106,16 +106,84 @@ function showInfoModal(opts) {
   function close() {
     overlay.classList.add("hidden");
     cancelBtn.style.display = "";
-    okBtn.removeEventListener("click", close);
+    okBtn.removeEventListener("click", onOk);
     overlay.removeEventListener("click", onOverlay);
     document.removeEventListener("keydown", onKey);
   }
+  function onOk() {
+    if (opts.okHref) { try { window.open(opts.okHref, "_blank"); } catch (e) {} }
+    close();
+  }
   function onOverlay(e) { if (e.target === overlay) close(); }
   function onKey(e) { if (e.key === "Escape") close(); }
-  okBtn.addEventListener("click", close);
+  okBtn.addEventListener("click", onOk);
   overlay.addEventListener("click", onOverlay);
   document.addEventListener("keydown", onKey);
   okBtn.focus();
+}
+
+// ---------- 检查更新 ----------
+function esc(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+// 将 GitHub Release 正文（markdown）轻量转成 HTML
+function _releaseNotesToHtml(body) {
+  if (!body || !body.trim()) return '<p style="color:var(--ink-muted);margin:0">（本次未填写更新说明）</p>';
+  var s = esc(body);
+  var lines = s.split(/\r?\n/);
+  var out = [];
+  var inList = false;
+  lines.forEach(function (line) {
+    var t = line.trim();
+    var m;
+    if (!t) { if (inList) { out.push("</ul>"); inList = false; } return; }
+    if (m = t.match(/^(#{1,6})\s+(.*)$/)) {
+      if (inList) { out.push("</ul>"); inList = false; }
+      out.push('<div style="font-weight:700;color:var(--ink-primary);margin:10px 0 4px">' + m[2] + '</div>');
+    } else if (m = t.match(/^[-*•]\s+(.*)$/)) {
+      if (!inList) { out.push('<ul style="margin:4px 0;padding-left:20px">'); inList = true; }
+      out.push('<li style="margin:2px 0">' + m[1] + '</li>');
+    } else {
+      if (inList) { out.push("</ul>"); inList = false; }
+      out.push('<div style="margin:3px 0">' + t + '</div>');
+    }
+  });
+  if (inList) out.push("</ul>");
+  var html = out.join("\n");
+  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" style="color:var(--accent)">$1</a>');
+  return html;
+}
+async function checkUpdate() {
+  toast("正在检查更新…");
+  var res;
+  try {
+    res = await API("/api/check_update");
+  } catch (e) {
+    showInfoModal({ icon: "⚠️", title: "检查更新失败", html: '<p style="margin:0">无法连接到服务器，请检查网络后重试。</p>' });
+    return;
+  }
+  if (res && res.error) {
+    showInfoModal({ icon: "⚠️", title: "检查更新失败", html: '<p style="margin:0">' + esc(res.error) + '</p>' });
+    return;
+  }
+  if (!res || !res.latest) {
+    showInfoModal({ icon: "ℹ️", title: "暂无新版本",
+      html: '<p style="margin:0">当前版本 <b>' + esc(res ? res.current : "?") + '</b>，尚未发布任何 Release。</p>' });
+    return;
+  }
+  if (!res.has_update) {
+    showInfoModal({ icon: "✅", title: "已是最新版本",
+      html: '<p style="margin:0">当前版本 <b>' + esc(res.current) + '</b>，已是最新。</p>' });
+    return;
+  }
+  var html = '<div style="text-align:left;white-space:normal">'
+    + '<div style="margin-bottom:10px"><span style="color:var(--ink-muted)">当前</span> ' + esc(res.current)
+    + ' &nbsp;→&nbsp; <span style="color:var(--ink-muted)">最新</span> <b style="color:var(--accent);font-size:16px">' + esc(res.latest) + '</b></div>'
+    + '<div style="color:var(--ink-muted);font-size:13px;margin-bottom:6px">更新内容：</div>'
+    + '<div style="max-height:46vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:var(--surface-2);font-size:13px;line-height:1.6;white-space:normal">'
+    + _releaseNotesToHtml(res.notes) + '</div></div>';
+  showInfoModal({ icon: "🆕", title: "发现新版本", html: html, okText: "前往下载", okHref: res.exe_url || res.release_url, wide: true });
 }
 
 // ---------- 食堂地图灯箱 ----------
@@ -148,7 +216,7 @@ document.querySelectorAll(".tab").forEach((btn) => {
     if (btn.dataset.tab === "locations") loadLocations();
     if (btn.dataset.tab === "achievements") { loadBadges(); loadWheel(); loadAchievements(); }
     if (btn.dataset.tab === "dashboard") { fillCategoryFilter(); refresh(); }
-    if (btn.dataset.tab === "ebti") { EBTI.currentQ = 0; EBTI.answers = []; _ebtiRenderQuestion(); }
+    if (btn.dataset.tab === "ebti") { _ebtiEnter(); }
   });
 });
 // logo 点击回到数据看板（事件委托，图标和文字都可点）
@@ -190,11 +258,15 @@ document.addEventListener("click", function (e) {
     if (cur) cur.classList.add("active");
     uDrop.querySelectorAll(".dropdown-item").forEach(function (item) {
       item.addEventListener("click", function () {
+        uDrop.classList.add("hidden");
         var tab = this.dataset.tab;
+        if (!tab) {
+          if (this.id === "check-update-item") checkUpdate();
+          return;
+        }
         document.querySelectorAll(".tab").forEach(function (b) { b.classList.remove("active"); });
         document.querySelectorAll(".page").forEach(function (p) { p.classList.add("hidden"); });
         $("page-" + tab).classList.remove("hidden");
-        uDrop.classList.add("hidden");
         if (tab === "sync") loadConfig();
         if (tab === "rules") loadRules();
       });
@@ -614,7 +686,7 @@ async function fillCategoryFilter() {
     if (cat) q.set("category", cat);
     const a = document.createElement("a");
     a.href = "/api/export?" + q.toString();
-    a.download = "eat_stat_export.csv";
+    a.download = "THUeat_export.csv";
     a.click();
     toast("正在导出…", "ok");
   });
@@ -646,30 +718,17 @@ window._jumpFromMax = function (el) {
     start = dateStr + "-01-01";
     end = dateStr + "-12-31";
   }
-  state.start = start;
-  state.end = end;
-  // 同步到主筛选栏和明细栏的日期输入框
+  // 仅作用于下半部分（明细栏）：不改动主筛选 / 上半部分
   var uidStart = toUIDate(start);
   var uidEnd = toUIDate(end);
-  var fs = $("f-start"), fe = $("f-end");
-  if (fs) fs.value = uidStart;
-  if (fe) fe.value = uidEnd;
-  // 明细栏日期输入框
   var ds = $("d-start"), de = $("d-end");
   if (ds) ds.value = uidStart;
   if (de) de.value = uidEnd;
-  // 明细栏也切到自定义模式（显示日期范围）
+  // 明细栏切到自定义模式（显示日期范围）
   var dToggle = $("d-custom-toggle");
   if (dToggle) dToggle.checked = true;
   var dWrap = $("d-custom-wrap");
   if (dWrap) dWrap.classList.remove("hidden");
-  // 切换到自定义日期模式
-  var toggle = $("f-custom-toggle");
-  if (toggle) toggle.checked = true;
-  var wrap = $("f-custom-wrap");
-  if (wrap) wrap.classList.remove("hidden");
-  var hint = $("range-hint");
-  if (hint) hint.textContent = uidStart + " ~ " + uidEnd;
   state.page = 0;
   loadDetail();
   // 滚动到明细表
@@ -1784,7 +1843,31 @@ if (hy) hy.addEventListener("change", function () {
   if (state._heatData) renderHeatmap(state._heatData, this.value);
 });
 
-matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { refresh(); });
+// ---------- 主题切换（深色 / 浅色，手动 + 持久化） ----------
+(function () {
+  var btn = $("theme-toggle");
+  function current() { return document.documentElement.getAttribute("data-theme") || "light"; }
+  function syncIcon() {
+    if (!btn) return;
+    if (current() === "dark") { btn.textContent = "☀️"; btn.title = "切换到浅色模式"; }
+    else { btn.textContent = "🌙"; btn.title = "切换到深色模式"; }
+  }
+  function setTheme(t, persist) {
+    document.documentElement.setAttribute("data-theme", t);
+    if (persist) localStorage.setItem("thueat_theme", t);
+    syncIcon();
+    refresh(); // ECharts 颜色取自 CSS 变量，需重绘
+  }
+  syncIcon();
+  if (btn) btn.addEventListener("click", function () {
+    setTheme(current() === "dark" ? "light" : "dark", true);
+  });
+  // 系统主题变化：用户未手动选择时跟随系统，否则仅重绘图表
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function (e) {
+    if (!localStorage.getItem("thueat_theme")) setTheme(e.matches ? "dark" : "light", false);
+    else refresh();
+  });
+})();
 
 // ==================== EATi 饮食人格测试 ====================
 
@@ -1854,7 +1937,7 @@ var EATI_ARCHETYPES = [
   { id:"SHEP", name:"跟风狗",  icon:"🐑", d:12,o:14,p:16,s:22,w:11, desc:"你最大的点餐焦虑不是选什么，而是轮到你来决定的那个瞬间。所以你建立了完美的防御机制：跟着朋友走就对了。你从来不是组织者，却是最忠实的参与者，别人挑地方你背书。从不主动决定意味着从不内疚，吃开心了还会顺手拍一张发群里。" },
   { id:"DASH", name:"速通食客", icon:"🏃", d:24,o:16,p:24,s:18,w:16, desc:"别人还在看菜单，你已经坐在位子上吃上了。从决定到下单只需几秒，从吃完到决定下一顿也同步发生。你把每顿饭当成一个速通任务，又快又准。你喜欢跟人分享通关心得，也不介意一个人冲。怕的不是踩雷，是吃得太慢。" },
   { id:"HOST", name:"组局王",  icon:"🎪", d:18,o:24,p:16,s:22,w:18, desc:"你手机群聊里永远有两三个饭搭子群。提前敲人数、选窗口、安排时间——这些你觉得是基础操作，对朋友来说你已是一个行走的餐厅调度系统。你对菜单的掌控不止来自频率，更来自你把每个朋友的偏好记得比课表还清楚。" },
-  { id:"CHON-G", name:"炫就完了", icon:"🍖", d:14,o:11,p:20,s:18,w:11, desc:"规则和计划对你来说是浮云，你不纠结选择，因为你什么都想试。你的攻击力全点在胃的容量上，不管多大碗都相信自己的实力。偶尔吃撑到后悔，但这份毫无保留的随性就是你的魅力：吃饭嘛，开心才是第一标准。旁边有人一起炫，节奏更佳。" },
+  { id:"CHON-G", name:"炫就完了", icon:"🍖", d:14,o:11,p:20,s:18,w:11, desc:"规则和计划对你来说是浮云，你不纠结选择，因为你什么都想试。你的攻击力全点在胃的容量上，不管多大碗都相信自己的实力。偶尔吃撑到后悔，但这份毫无保留的随性就是你的魅力：吃饭嘛，开心才是第一标准。旁边有人一起炫，节奏更佳。冲冲冲！" },
   { id:"YEEE", name:"耶耶耶",  icon:"💨", d:24,o:11,p:20,s:16,w:14, desc:"点菜瞬间你已经付完款了，嘴里还喊着耶耶耶。冲动比理性更适合食堂，看上了就冲，吃完了就撤，不在意别人怎么看。偶尔叫上一个人跟你高效扫荡，但快节奏让你更享受单枪匹马的爽快。没时间挑，也不想挑。" },
   { id:"COPY", name:"复读鸡",  icon:"🐔", d:11,o:16,p:16,s:23,w:16, desc:"看同桌点什么你就点什么，看群友夸哪个你下次就去那个。这种复读式选菜是你把社交信任外包给了朋友圈。你喜欢和别人吃一样的饭，因为这让你们聊得更多。同步的口感给你心安，也让你远离踩雷。" },
   { id:"ST-uCK", name:"卡住了",  icon:"🔒", d:10,o:24,p:11,s:16,w:20, desc:"排队到你的那一刻才是真正考验的开始。菜单在你眼中不是信息，是一道没有标准答案的考题。你反复比较每一行菜名，用排除法、打分法、对比法，最终在阿姨催促的眼光下颤颤地指一道菜。每一个选择都必须有理有据，对得起自己。" },
@@ -1886,7 +1969,7 @@ function _eatMatch(scores) {
     if (arch.id === "OOOO") dist *= 1.25;
     if (dist < bestDist) { bestDist = dist; best = arch; }
   }
-  return { id: best.id, icon: best.icon, name: best.name + " · " + best.id, desc: best.desc };
+  return { id: best.id, icon: best.icon, name: best.name, desc: best.desc };
 }
 
 var EBTI = { answers: [], currentQ: 0 };
@@ -1999,7 +2082,42 @@ document.addEventListener("keydown", function (e) {
   }
 });
 
+// ---------- EATi 结果持久化 ----------
+var EBTI_STORE_KEY = "thueat_ebti_answers";
+function _ebtiLoadAnswers() {
+  try {
+    var raw = localStorage.getItem(EBTI_STORE_KEY);
+    if (!raw) return null;
+    var arr = JSON.parse(raw);
+    if (!Array.isArray(arr) || arr.length !== EBTI_QUESTIONS.length) return null;
+    for (var i = 0; i < arr.length; i++) {
+      var n = arr[i], q = EBTI_QUESTIONS[i];
+      if (typeof n !== "number" || !q || n < 0 || n >= q.scores.length) return null;
+    }
+    return arr;
+  } catch (e) { return null; }
+}
+function _ebtiSaveAnswers() {
+  try { localStorage.setItem(EBTI_STORE_KEY, JSON.stringify(EBTI.answers)); } catch (e) {}
+}
+function _ebtiClearAnswers() {
+  try { localStorage.removeItem(EBTI_STORE_KEY); } catch (e) {}
+}
+// 进入 EATi 页：已测过则直接展示结果，否则从第 1 题开始
+function _ebtiEnter() {
+  var saved = _ebtiLoadAnswers();
+  if (saved) {
+    EBTI.answers = saved;
+    EBTI.currentQ = EBTI_QUESTIONS.length;
+    _ebtiShowResult();
+  } else {
+    EBTI.currentQ = 0;
+    EBTI.answers = [];
+    _ebtiRenderQuestion();
+  }
+}
 function _ebtiReset() {
+  _ebtiClearAnswers();
   EBTI = { answers: [], currentQ: 0 };
   $("ebti-quiz").classList.remove("hidden");
   $("ebti-result").classList.add("hidden");
@@ -2010,6 +2128,7 @@ function _ebtiReset() {
 function _ebtiShowResult() {
   $("ebti-quiz").classList.add("hidden");
   $("ebti-result").classList.remove("hidden");
+  _ebtiSaveAnswers(); // 持久化答题结果，下次打开直接进入结果页
   // 计分
   var dimScores = {}, dimCounts = {};
   EBTI_QUESTIONS.forEach(function (q, i) {
@@ -2057,8 +2176,8 @@ function _ebtiShowResult() {
   // 右上类型标识
   if ($("ebti-type-icon")) $("ebti-type-icon").textContent = arch.icon;
   if ($("ebti-type-en")) $("ebti-type-en").innerHTML =
-    '<div class="ebti-type-cn">' + arch.name + '</div>' +
-    '<div class="ebti-type-abbr">' + arch.id + '</div>';
+    '<div class="ebti-type-abbr">' + arch.id + '</div>' +
+    '<div class="ebti-type-cn">' + arch.name + '</div>';
   // 人格简单解读
   if ($("ebti-interp")) $("ebti-interp").textContent = arch.desc;
   // 维度特征卡片

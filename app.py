@@ -4,6 +4,7 @@
 """
 import threading
 import webbrowser
+import re
 from datetime import datetime, timedelta
 
 from flask import Flask, jsonify, request, send_from_directory
@@ -223,6 +224,55 @@ def api_info():
     })
 
 
+# ----------------------------- 检查更新 -----------------------------
+GITHUB_REPO = "user-A100/THU-EAT"
+
+
+def _version_tuple(v):
+    """版本字符串 → 数字元组，便于比较。如 'v2026.7.12' -> (2026, 7, 12)。"""
+    return tuple(int(p) for p in re.findall(r"\d+", v or "")) or (0,)
+
+
+@app.get("/api/check_update")
+def api_check_update():
+    """查询 GitHub 最新 Release：是否有更新 + 更新说明 + 下载地址。"""
+    try:
+        import requests
+        r = requests.get(
+            f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest",
+            headers={"Accept": "application/vnd.github+json", "User-Agent": "THU-EAT"},
+            timeout=10,
+        )
+        if r.status_code == 404:
+            return jsonify({"has_update": False, "current": config.VERSION,
+                            "latest": None, "msg": "尚未发布任何 Release"})
+        if r.status_code == 403:
+            return jsonify({"has_update": False, "current": config.VERSION,
+                            "error": "GitHub 请求频率受限，请稍后再试"})
+        r.raise_for_status()
+        data = r.json()
+    except Exception as e:
+        return jsonify({"has_update": False, "current": config.VERSION,
+                        "error": "无法连接 GitHub：" + str(e)})
+    tag = (data.get("tag_name") or "").lstrip("v").strip()
+    notes = data.get("body") or ""
+    release_url = data.get("html_url") or ""
+    exe_url = release_url
+    for a in data.get("assets", []):
+        if (a.get("name") or "").lower().endswith(".exe"):
+            exe_url = a.get("browser_download_url") or exe_url
+            break
+    has_update = _version_tuple(tag) > _version_tuple(config.VERSION)
+    return jsonify({
+        "has_update": has_update,
+        "current": config.VERSION,
+        "latest": tag,
+        "notes": notes,
+        "release_url": release_url,
+        "exe_url": exe_url,
+    })
+
+
 # ----------------------------- 统计 -----------------------------
 
 def _rows_from_args():
@@ -300,7 +350,7 @@ def api_achievements():
         {"name": "天猫紫荆店", "icon": "🏪", "desc": "C楼负一，7:30-23:30", "cat": "购物"},
         {"name": "天猫清芬店", "icon": "🏪", "desc": "南区7号楼底，8:30-23:30", "cat": "购物"},
         {"name": "天猫观畴店", "icon": "🏪", "desc": "观畴负一楼，9:00-21:00", "cat": "购物"},
-        {"name": "照澜院购物中心", "icon": "🎁", "desc": "照澜院，文创纪念品", "cat": "购物", "manual": True},
+        {"name": "照澜院购物中心", "icon": "🎁", "desc": "生活用品大超市", "cat": "购物", "manual": True},
         # 便利店（手动解锁）
         {"name": "紫荆五号楼便利店", "icon": "🏪", "desc": "紫荆5号楼1单元，8:00-1:00", "cat": "便利店", "manual": True},
         {"name": "紫荆十一号楼便利店", "icon": "🏪", "desc": "紫荆11号楼4单元，10:00-0:00", "cat": "便利店", "manual": True},
@@ -310,16 +360,16 @@ def api_achievements():
         {"name": "鲜果屋", "icon": "🍊", "desc": "南区7号楼底，8:00-23:30", "cat": "水果", "manual": True},
         # 校外餐厅（全部手动解锁）
         {"name": "李先生（牛肉面大王）", "icon": "🍜", "desc": "照澜院，牛肉面经典之选", "cat": "餐厅", "manual": True},
-        {"name": "必胜客", "icon": "🍕", "desc": "五道口，披萨意面西式简餐", "cat": "餐厅", "manual": True},
-        {"name": "麦当劳", "icon": "🍔", "desc": "五道口/东升大厦，24小时快餐", "cat": "餐厅", "manual": True},
-        {"name": "霸王茶姬", "icon": "🍵", "desc": "五道口购物中心，国风鲜奶茶", "cat": "饮品", "manual": True},
+        {"name": "必胜客", "icon": "🍕", "desc": "澜园附近，披萨意面西式简餐", "cat": "餐厅", "manual": True},
+        {"name": "麦当劳", "icon": "🍔", "desc": "澜园附近，24小时快餐", "cat": "餐厅", "manual": True},
+        {"name": "霸王茶姬", "icon": "🍵", "desc": "澜园附近，国风鲜奶茶", "cat": "饮品", "manual": True},
         {"name": "蜜雪冰城（观畴店）", "icon": "🍦", "desc": "观畴园，冰淇淋&柠檬水性价比之王", "cat": "饮品", "manual": True},
         {"name": "蜜雪冰城（C楼店）", "icon": "🍦", "desc": "C楼，冰淇淋&柠檬水性价比之王", "cat": "饮品", "manual": True},
-        {"name": "么么侠的茶", "icon": "🧋", "desc": "照澜院，奶茶果茶", "cat": "饮品", "manual": True},
+        {"name": "么么侠的茶", "icon": "🧋", "desc": "观畴负一楼，奶茶果茶", "cat": "饮品", "manual": True},
         {"name": "库迪咖啡", "icon": "☕", "desc": "观畴园楼下，平价咖啡新选择", "cat": "饮品", "manual": True},
         {"name": "瑞幸咖啡", "icon": "☕", "desc": "清芬园旁边，luckin coffee", "cat": "饮品", "manual": True},
-        {"name": "包的（包子铺）", "icon": "🥟", "desc": "照澜院，手工包子早餐铺", "cat": "餐厅", "manual": True},
-        {"name": "学霸加油站", "icon": "⛽", "desc": "校内小吃补给站", "cat": "餐厅", "manual": True},
+        {"name": "包的（包子铺）", "icon": "🥟", "desc": "观畴负一，手工包子早餐铺", "cat": "餐厅", "manual": True},
+        {"name": "学霸加油站", "icon": "⛽", "desc": "观畴负一，校内小吃补给站", "cat": "餐厅", "manual": True},
     ]
     from collections import defaultdict
     stats_dict = defaultdict(lambda: {"count": 0, "total": 0.0, "last": ""})
@@ -427,7 +477,7 @@ def api_export():
         csv_content,
         mimetype="text/csv; charset=utf-8-sig",
         headers={
-            "Content-Disposition": "attachment; filename=eat_stat_export.csv",
+            "Content-Disposition": "attachment; filename=THUeat_export.csv",
         },
     )
 
@@ -489,7 +539,7 @@ def main():
     url = "http://127.0.0.1:5000"
     threading.Timer(1.2, lambda: webbrowser.open(url)).start()
     print("=" * 48)
-    print("  Eat_stat 已启动 → 浏览器应自动打开：")
+    print("  THUeat 已启动 → 浏览器应自动打开：")
     print(f"  {url}")
     print("  若未打开，请手动访问该地址。关闭本窗口停止程序。")
     print("=" * 48)

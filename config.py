@@ -14,6 +14,9 @@ DATA_DIR = BASE_DIR / "data"
 CONFIG_PATH = DATA_DIR / "config.json"
 DB_PATH = DATA_DIR / "eat_stat.db"
 
+# 程序版本号：发布 Release 时同步更新，Release tag 为 v+VERSION（如 v1.0.0）
+VERSION = "1.0.0"
+
 # 配置字段
 DEFAULT_CONFIG = {
     "idserial": "",          # 学号
