@@ -171,7 +171,14 @@ def api_login_sync():
     if s.status != "success" or not s.cookie_str:
         return jsonify({"error": "尚未登录成功，请先点「登录清华」"}), 400
     cfg = config.load_config()
-    cfg["servicehall"] = s.cookie_str
+    # 从完整 cookie 串中提取纯净的 servicehall 值（不含 JSESSIONID 等前缀）
+    pure_sh = s.cookie_str
+    for part in s.cookie_str.split(";"):
+        part = part.strip()
+        if part.startswith("servicehall="):
+            pure_sh = part.split("=", 1)[1]
+            break
+    cfg["servicehall"] = pure_sh
     # 不立即保存——do_sync 成功后再保存（含自动获取的 idserial）
     body = request.get_json(silent=True) or {}
     end = (body.get("end") or datetime.now().strftime("%Y-%m-%d"))[:10]

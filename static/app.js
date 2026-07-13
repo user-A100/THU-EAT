@@ -927,6 +927,18 @@ document.addEventListener("keydown", function (e) {
 });
 
 // ---------- 配置 / 同步 ----------
+// 手动登录面板折叠/展开
+$("c-manual-toggle").addEventListener("click", function () {
+  const body = $("c-manual-body");
+  const hidden = body.classList.toggle("hidden");
+  this.textContent = hidden ? "✍️ 手动登录 ▸" : "✍️ 手动登录 ▾";
+});
+// 手动获取 Cookie 说明（嵌套折叠）
+$("c-cookie-help-toggle").addEventListener("click", function () {
+  const body = $("c-cookie-help-body");
+  const hidden = body.classList.toggle("hidden");
+  this.textContent = hidden ? "📖 手动获取 Cookie 说明 ▸" : "📖 手动获取 Cookie 说明 ▾";
+});
 async function loadConfig() {
   const cfg = await API("/api/config");
   $("c-idserial").value = cfg.idserial || "";
@@ -944,7 +956,7 @@ $("c-save").addEventListener("click", async () => {
 });
 
 // ---------- 登出 ----------
-$("c-logout").addEventListener("click", async () => {
+async function doLogout() {
   const ok = await confirmDialog({
     icon: "🚪",
     title: "退出登录？",
@@ -964,7 +976,128 @@ $("c-logout").addEventListener("click", async () => {
   $("s-status").textContent = "";
   toast("已退出登录", "ok");
   fillCategoryFilter();
+}
+$("c-logout").addEventListener("click", doLogout);
+$("c-logout-top").addEventListener("click", doLogout);
+
+// ---------- 一键登录清华（Playwright SSO，persistent context）----------
+let _loginPollTimer = null;
+
+function setLoginUI(waiting) {
+  const cancelBtn = $("c-login-cancel");
+  const mainBtn = $("c-login");
+  const autoBtn = $("c-login-auto-toggle");
+  cancelBtn.classList.toggle("hidden", !waiting);
+  mainBtn.disabled = waiting;
+  autoBtn.disabled = waiting;
+}
+
+function stopLoginPoll() {
+  if (_loginPollTimer) { clearInterval(_loginPollTimer); _loginPollTimer = null; }
+}
+
+async function finishLoginSync() {
+  // 登录成功 → 自动同步一次（复用 /api/login/sync，内部走 do_sync）
+  $("c-login-status").textContent = "登录成功，正在自动同步数据…";
+  let res;
+  try {
+    res = await API("/api/login/sync", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({})
+    });
+  } catch (e) {
+    $("c-login-status").textContent = "登录成功，但同步请求失败，可手动点同步。";
+    setLoginUI(false);
+    return;
+  }
+  if (res.error) {
+    $("c-login-status").textContent = "登录成功，但同步失败：" + res.error + "（可手动点同步）";
+    toast("登录成功，但同步失败", "error");
+  } else {
+    $("c-login-status").textContent = `登录并同步完成：新增 ${res.inserted} 条`;
+    toast(`登录成功，新增 ${res.inserted} 条`, "ok");
+    fillCategoryFilter();
+  }
+  await loadConfig();
+  setLoginUI(false);
+}
+
+function pollLogin() {
+  stopLoginPoll();
+  _loginPollTimer = setInterval(async () => {
+    let s;
+    try { s = await API("/api/login/status"); }
+    catch (e) { return; }
+    let txt = s.message || "";
+    // 等待中实时显示后端诊断，定位"浏览器已登录但 EAT 没反应"卡在哪一步
+    if (s.status === "waiting" && s.debug) {
+      const d = s.debug;
+      txt += `\n🔍 ${d.stage || ""} · 离开登录页 ${d.left_login_for_s || 0}s · 物化 ${d.mat_attempts || 0}次 · servicehall ${d.has_servicehall ? "有" : "无"}${d.val_error ? " · " + d.val_error : ""}`;
+    }
+    $("c-login-status").textContent = txt;
+    if (s.status === "success") {
+      stopLoginPoll();
+      await finishLoginSync();
+    } else if (s.status === "error" || s.status === "cancelled") {
+      stopLoginPoll();
+      setLoginUI(false);
+      if (s.status === "error") toast(s.message || "登录失败", "error");
+    }
+    // waiting → 继续轮询
+  }, 1500);
+}
+
+async function startLogin(endpoint, body) {
+  setLoginUI(true);
+  $("c-login-status").textContent = "正在启动浏览器…";
+  let res;
+  try {
+    res = await API(endpoint, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {})
+    });
+  } catch (e) {
+    $("c-login-status").textContent = "请求失败：" + e;
+    setLoginUI(false);
+    return;
+  }
+  if (res.error) {
+    $("c-login-status").textContent = res.error;
+    setLoginUI(false);
+    return toast(res.error, "error");
+  }
+  if (!res.started) {
+    $("c-login-status").textContent = res.message || "无法启动登录（可能上一次登录仍在进行）";
+    setLoginUI(false);
+    return;
+  }
+  pollLogin();
+}
+
+$("c-login").addEventListener("click", () => startLogin("/api/login/start", {}));
+
+$("c-login-cancel").addEventListener("click", async () => {
+  try { await API("/api/login/cancel", { method: "POST" }); } catch (e) {}
+  $("c-login-status").textContent = "正在取消…";
 });
+
+$("c-login-auto-toggle").addEventListener("click", () => {
+  $("c-login-auto-form").classList.toggle("hidden");
+});
+
+$("c-login-auto-go").addEventListener("click", () => {
+  const u = $("c-login-user").value.trim();
+  const p = $("c-login-pass").value;
+  if (!u || !p) return toast("请输入学号和密码", "error");
+  $("c-login-auto-form").classList.add("hidden");
+  $("c-login-pass").value = "";  // 用完即清，不留明文密码
+  startLogin("/api/login/auto", { username: u, password: p });
+});
+
+// 初始化：若已有保存的登录态，提示可免二次验证
+API("/api/login/status").then(s => {
+  if (s.has_saved_state && !$("c-login-status").textContent) {
+    $("c-login-status").textContent = "✓ 已记录本机登录状态，点「一键登录清华」可免二次验证。";
+  }
+}).catch(() => {});
 
 // 同步快捷按钮
 async function doQuickSync(daysBack) {

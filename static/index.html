@@ -316,7 +316,32 @@
   <!-- ============ 配置与同步 ============ -->
   <main class="page hidden" id="page-sync">
     <section class="panel narrow">
-      <h3 class="card-title">账号配置</h3>
+      <h3 class="card-title">一键登录清华</h3>
+      <p class="muted">点击下方按钮，会弹出清华统一身份认证页面，完成登录（含双因子）即可自动拉取数据。登录状态保存在本机，下次重新登录可<b>免二次验证</b>。</p>
+      <div class="btn-row">
+        <button class="btn primary" id="c-login">🔑 一键登录清华</button>
+        <button class="btn" id="c-login-auto-toggle">🤖 学号密码登录</button>
+        <button class="btn danger hidden" id="c-login-cancel">取消登录</button>
+        <button class="btn danger" id="c-logout-top">退出登录</button>
+      </div>
+      <div class="hidden" id="c-login-auto-form" style="margin-top:10px">
+        <div class="form-row">
+          <label>学号</label>
+          <input type="text" id="c-login-user" placeholder="如 2024xxxxxxx" autocomplete="username">
+        </div>
+        <div class="form-row">
+          <label>密码</label>
+          <input type="password" id="c-login-pass" placeholder="信息门户密码" autocomplete="current-password">
+        </div>
+        <button class="btn primary" id="c-login-auto-go">开始自动登录</button>
+        <p class="muted" style="font-size:12px">密码仅在本次登录使用、不会保存。若已在本机登录过，自动登录也可免二次验证。</p>
+      </div>
+      <p class="muted" id="c-login-status" style="white-space:pre-line"></p>
+    </section>
+
+    <section class="panel narrow">
+      <h3 class="card-title" id="c-manual-toggle" style="cursor:pointer; user-select:none;">✍️ 手动登录 ▸</h3>
+      <div class="hidden" id="c-manual-body">
       <p class="muted">数据全程保存在本机，不会上传任何服务器。</p>
       <div class="form-row">
         <label>学号</label>
@@ -324,18 +349,29 @@
       </div>
       <div class="form-row">
         <label>servicehall Cookie</label>
-        <textarea id="c-servicehall" rows="2" placeholder="粘贴 servicehall Cookie 值或完整 Cookie 串"></textarea>
+        <textarea id="c-servicehall" rows="2" placeholder="在此粘贴 servicehall Cookie 值或完整 Cookie 串"></textarea>
         <small class="muted" id="c-current">当前：未设置</small>
       </div>
+
+      <h4 id="c-cookie-help-toggle" style="margin-top:8px; margin-bottom:4px; cursor:pointer; user-select:none; font-size:14px;">📖 手动获取 Cookie 说明 ▸</h4>
+      <div class="hidden" id="c-cookie-help-body">
+      <p class="muted">一键登录不可用时（如部分 Mac / Linux 环境），可手动从浏览器复制 cookie：</p>
+      <ol class="steps">
+        <li>电脑浏览器打开 <a href="https://card.tsinghua.edu.cn/" target="_blank">card.tsinghua.edu.cn</a>，完成清华统一身份认证登录（含双因子）。</li>
+        <li>登录后按 <kbd>F12</kbd> → 顶部「<b>应用程序 / Application</b>」标签 → 左侧 <b>Cookies</b> → 选 <code>card.tsinghua.edu.cn</code>。</li>
+        <li>找到名为 <code>servicehall</code> 的条目 → 双击其 <b>Value</b> → <kbd>Ctrl+C</kbd> 复制。</li>
+        <li>粘贴到上方输入框，填好学号，点「保存配置」后点同步按钮。</li>
+      </ol>
+      <p class="muted">cookie 会过期（数小时～1 天）。过期后重复上述步骤即可，历史数据不会丢失。</p>
+      </div>
+
       <div class="btn-row">
         <button class="btn primary" id="c-save">保存配置</button>
         <button class="btn danger" id="c-logout">退出登录</button>
       </div>
-    </section>
 
-    <section class="panel narrow">
-      <h3 class="card-title">同步校园卡数据</h3>
-      <p class="muted">登录成功后点击下方按钮即可自动拉取数据，无需手动设置日期。</p>
+      <h4 style="margin-top:18px; margin-bottom:8px;">同步校园卡数据</h4>
+      <p class="muted">保存配置后，点击下方按钮拉取数据。</p>
       <div class="btn-row">
         <button class="btn primary" id="s-sync-all">全部导入</button>
         <button class="btn" id="s-sync-year">近一年</button>
@@ -347,17 +383,7 @@
         <span class="muted" id="s-auto-status"></span>
       </div>
       <p class="muted" id="s-status"></p>
-    </section>
-
-    <section class="panel narrow">
-      <h3 class="card-title">如何获取 Cookie</h3>
-      <ol class="steps">
-        <li>电脑浏览器打开 <a href="https://card.tsinghua.edu.cn/" target="_blank">card.tsinghua.edu.cn</a>，完成清华统一身份认证登录（含双因子）。</li>
-        <li>登录后按 <kbd>F12</kbd> → 顶部「<b>应用程序 / Application</b>」标签 → 左侧 <b>Cookies</b> → 选 <code>card.tsinghua.edu.cn</code>。</li>
-        <li>找到名为 <code>servicehall</code> 的条目 → 双击其 <b>Value</b> → <kbd>Ctrl+C</kbd> 复制。</li>
-        <li>粘贴到上方输入框，填好学号，点「保存配置」后点同步按钮。</li>
-      </ol>
-      <p class="muted">cookie 会过期（数小时～1 天）。过期后重复上述步骤即可，历史数据不会丢失。</p>
+      </div>
     </section>
 
     <section class="panel narrow">

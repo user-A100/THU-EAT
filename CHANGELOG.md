@@ -1,5 +1,69 @@
 # THU Eat 开发日志
 
+## 2026-07-13
+
+### 真正修复一键登录回传：对照参考项目，从 card 受保护页进入 + 修复物化触发
+- **问题**：浏览器里 SSO 已显示登录成功，但 EAT 拿不到 token（一直 waiting → 超时）。
+- **对照参考实现** `leverimmy/Table-Tennis-Checkin-Helper`（已成功跑通清华 SSO→捕获会话）的 `login_via_browser`：
+  - goto **服务自己的登录入口**（不是 IdP 本身），登录后由浏览器 CAS 跳转链自然回服务、认证产物自动出现；轮询捕获即可
+  - 但 sports 的 `toLoginPage` 编码了"回到 sports"的回调；而 card 的 CAS 受保护页重定向到 IdP 时回调是 IdP 自己的 `/userindex`（见下 2026-07-12 实测），登录后浏览器**不回 card**——所以 card 不能照搬"只轮询"，必须保留物化兜底
+- **根因（代码层面）**：之前 `_run_manual`/`_run_auto` 直接 `goto(裸 SSO_URL=…?/userindex)`，且回调是 `/userindex`，登录后浏览器停在 id.tsinghua 永远不回 card；物化本应救场，但触发条件 `on_login_form = "auth/login" in url` 是纯子串判定——IdP 登录后落地 URL 仍带 `auth/login` 时，物化**永不触发**
+- **修复**：
+  - `_run_manual`/`_run_auto` 改为 `goto(CARD_AUTH_PAGE=card/userinfo)`：card 的 CAS 过滤器服务端 302 跳 IdP（不走首页那个时序不稳的 JS 登录按钮），既稳定弹到登录表单、又让 card 自己发起 SSO 往返；删除裸 `SSO_URL` 常量
+  - 物化触发改为 `密码框可见` 判定登录态 + `userindex`/离开登录页 15s 信号，不再用脆弱 URL 子串；物化候选轮流试 `/userinfo`、`/`、`/login/login`
+  - 校验只用 card 域 cookie（避免与 id 域同名 `JSESSIONID` 压平覆盖误判）
+  - `_wait_login` 全程把 阶段/url/物化次数/servicehall 有无/校验错误 写入 `snapshot().debug`，前端等待时实时显示一行 🔍，超时信息里也带完整读数——以后再卡能直接看出卡在哪步
+
+## 2026-07-12
+
+### 彻底修复一键登录：直达 SSO + 登录后物化 card 会话（实测摸清真实流程）
+- **实测摸清 card 登录真实流程**（之前几版都在猜）：
+  - card 首页"登录"是 JS 触发的空 `<a>`，时序不稳 → 之前"开 card 首页再点登录"经常**不跳 SSO**
+  - 该"登录"按钮跳到的 SSO：`id.tsinghua.edu.cn/.../auth/login/form/<hash>/0?/userindex`，标题"您即将登录 校园卡系统"
+  - **关键：SSO 登录成功后 IdP 把浏览器停在它自己的 `/userindex` 页，根本不回 card.tsinghua.edu.cn** —— 所以光"等回到 card"永远等不到 servicehall（"登录了也无法返回 thu-eat"的根因）
+  - 即便 CAS 受保护页 `/userinfo`、`/function` 未登录时也都重定向到同一个 `?/userindex` 回调
+- **修复一（直达 SSO）**：`_run_manual`/`_run_auto` 直接 `goto(SSO_URL)`，不再开 card 首页点 JS 按钮——稳定弹到 SSO 登录表单
+- **修复二（登录后物化）**：`_wait_login` 检测到 IdP 登录后停在 `/userindex`（或离开登录表单 >12s），主动 `goto(card/userinfo)` 触发 CAS 往返、让 card 在自己域种下 servicehall；每 8s 可重试
+- **修复三（权威校验保留）**：仍用 `getUserInfoFromToken` 拿到 loginuser 才算成功，避免 servicehall 误报
+- 移除已无用的 `_attach_sso_watcher`（不再依赖 was_on_sso）
+- **验证**：mock 路由模拟"登录后停在 /userindex"→ `_wait_login` 自动跳 /userinfo 物化 servicehall → getUserInfoFromToken 校验通过 → success
+
+---
+
+### 修复一键登录"来不及输入就秒判登录成功"（误报）
+- **现象**：点一键登录后，浏览器还没等用户输入就关闭、显示"登录成功"
+- **根因**：上一轮遗留的失效 card cookie + CAS 跳转本身会让 `was_on_sso` 为真（card→id→card 一跳即真），叠加"card 登录前就下发 servicehall"，于是 `was_on_sso + servicehall` 在**未真正登录**时也命中 → 秒判成功。`was_on_sso` 只能说明"CAS 跳转经过过 id.tsinghua"，不是"已认证"的可靠信号
+- **修复（权威校验）**：成功判定改为用 `scraper.get_login_user`（即 `getUserInfoFromToken`）校验捕获的 cookie——能拿到 loginuser 才算真正登录成功（这正是 scraper 校验会话的同一接口）。`was_on_sso` 仅作预筛、减少无效接口请求；接口校验节流 ≥2s
+- **配套**：登录前 `_clear_card_cookies` 清掉 card.tsinghua.edu.cn 的失效 cookie（保留 id.tsinghua 的二次验证信任态），让 card 干净地跳到 SSO 登录表单，用户能正常输入
+- **验证**：mock `getUserInfoFromToken`——VALID cookie→success、STALE cookie→不误报（等到超时）；`_clear_card_cookies` 清 card 域、保留 id.tsinghua 域
+
+---
+
+### 修复一键登录"弹窗登录成功但本程序不完成"
+- **现象**：一键登录弹出验证窗口，用户输入账号密码后弹窗显示"登录成功"，但 THU-EAT 页面一直不完成、不同步
+- **根因**：`_run_manual`/`_run_auto` 在 card 没秒跳 SSO 时会强跳裸 `SSO_URL`，而该 URL 的回调是 `/userindex`——登录后浏览器停在 `id.tsinghua.edu.cn`，**永远回不到 card.tsinghua.edu.cn**，于是 `_wait_login`（要求回到 card 域）一直等到超时
+- **修复（对齐参考仓库 intent）**：从 `card.tsinghua.edu.cn/`（CAS 客户端入口，相当于参考仓库的 `AUTH_URL`）进入，让 card 自己发起带正确回调的 SSO 往返，登录后自然回到 card 并种下 servicehall；删除裸 `SSO_URL` 常量与强跳逻辑
+- **可靠性增强**：`was_on_sso` 改用 `framenavigated` 主帧监听（`_attach_sso_watcher`）维护，能捕捉 IdP 仍有效时的秒级 `card→id→card` 往返——"免二次验证"的重新登录也能被识别（1s 轮询会漏掉一闪而过的 id.tsinghua）
+- **验证**：用 Playwright route mock 模拟往返——正向（经 SSO 回到 card + servicehall）正确捕获；反向（仅 card 域、pre-auth servicehall、未过 SSO）不误报（守住历史"登录闪退"防线）
+
+---
+
+### 移植清华 SSO persistent-context 登录模式 + 前端接入一键登录
+- **背景**：参考 `leverimmy/Table-Tennis-Checkin-Helper`，把清华统一身份认证登录升级为 persistent browser context 模式；并真正把登录接入前端（此前 `/api/login/*` 接口存在但前端零调用，只能手动 F12 复制 cookie）
+- **`auth.py`**：`launch` + `new_context` → `launch_persistent_context`，profile 落在 `data/.browser_profile/`
+  - 持久化 cookie / localStorage / "下次不再验证此浏览器" 的二次验证信任态 → 重新登录可免 2FA
+  - 移植 `SingletonLock` 守护：`is_browser_profile_in_use` / `clear_stale_profile_locks`，浏览器崩溃后自动清理 stale 锁、不再锁死
+  - 移除"优先系统默认浏览器(Edge)"分支，统一用 Playwright 自带 Chromium（persistent profile 兼容性）
+  - 保留 manual / auto 两条路径与公开契约；`snapshot()` 新增 `has_saved_state`
+  - 成功判定回归"必须 was_on_sso"（历史登录闪退 Bug 的防线：card 域登录前就会下发 servicehall，不能只看它）
+- **前端 `index.html` / `app.js`**：「配置与同步」新增「🔑 一键登录清华」+「🤖 学号密码登录」面板
+  - 轮询 `/api/login/status`，成功后自动调 `/api/login/sync` 同步并刷新；密码用完即清
+  - 修复：原退出登录 handler 写入的 `c-login-status` 元素此前在 HTML 中并不存在（隐含 Bug），随本次登录面板新增一并修复
+  - 手动复制 cookie 降级为"备用"
+- **`README.md`**：一键登录作为主路径，手动复制 cookie 降为备用；更新 Mac / cookie 过期 FAQ
+
+---
+
 ### 第十次迭代：修复地点搜索 + 卡片对齐 + 搜索栏美化
 - **地点搜索修复**：
   - 事件监听器加防御性检查（`bindLocationEvents` IIFE），防止元素未渲染时静默失败
