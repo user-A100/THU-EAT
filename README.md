@@ -8,12 +8,6 @@
 
 ---
 
-## 🙏 致谢
-
-感谢 [**@leverimmy**](https://github.com/leverimmy) 的开源项目 [**Table-Tennis-Checkin-Helper**](https://github.com/leverimmy/Table-Tennis-Checkin-Helper)，其 Playwright persistent browser context 的清华 SSO 登录方案为本项目的一键登录功能提供了关键的技术思路。详见 [SSO登录说明.md](./SSO登录说明.md)。
-
----
-
 ## 💭 为什么做这个
 
 最开始只是想给自己做一个记账工具，方便统计在食堂的消费。做着做着发现——光看数字不过瘾，于是加了可视化图表；图表看多了又觉得少了点乐子，于是加了成就勋章、EATi 人格、食堂探索……最后就变成了现在这个 THU Eat。
@@ -202,6 +196,12 @@ A：「配置与同步」→「清空所有数据」。
 ## ⚖️ 合规说明
 
 本程序用于查询**你自己**的校园卡消费记录，属于合理个人用途。请不要用于获取他人数据。
+
+---
+
+## 🙏 致谢
+
+感谢 [**@leverimmy**](https://github.com/leverimmy) 的开源项目 [**Table-Tennis-Checkin-Helper**](https://github.com/leverimmy/Table-Tennis-Checkin-Helper)，其 Playwright persistent browser context 的清华 SSO 登录方案为本项目的一键登录功能提供了关键的技术思路。详见 [SSO登录说明.md](./SSO登录说明.md)。
 
 ---
 
