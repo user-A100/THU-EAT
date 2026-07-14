@@ -25,11 +25,11 @@
 ![数据看板-趋势](static/screenshots/dashboard2.png)
 
 ### 成就勋章 & EATi 个性画像
-消费额度、频次、食堂广度、窗口忠诚度、早起鸟、夜猫子等 **16 种可升级勋章**。基于你的消费习惯生成专属 **EATi 吃货人格**（共 21 种）。
+消费额度、频次、食堂广度、窗口忠诚度、早起鸟、夜猫子等 **16 种可升级勋章**。基于你的消费习惯生成专属 **EATi 吃货人格**（共 21 种），展示高清人物画像、人格解读和五维雷达。
 
 ![勋章系统](static/screenshots/achivement.png)
 ![勋章详情](static/screenshots/achivement2.png)
-![EATi 个性画像](static/screenshots/EATi.png)
+![EATi 高清个性画像与五维雷达](static/screenshots/EATi.png)
 
 ### 地点统计
 窗口 / 食堂双模式切换，按金额/笔数/笔均排序，搜索筛选，看你最爱去哪吃。
