@@ -47,28 +47,33 @@
 
 ---
 
-## 🪟 Windows 用户请看这里（最简单）
+## 🪟 Windows 用户请看这里
 
-> 💡 **启动速度提示**：`THUeat.exe` 每次启动都要解压内置文件，**比较慢**（黑窗口会停一会儿才弹出页面）。如果你会装 Python、能用命令行，推荐走 **`start.bat`** 那条路，**快很多**：
-> 1. 安装 [Python 3.8+](https://www.python.org/downloads/)（安装时勾选 **Add Python to PATH**）
-> 2. 下载本仓库源码：`git clone https://github.com/user-A100/THU-EAT.git`（或网页上点绿色 `Code` → `Download ZIP` 解压）
-> 3. 进入文件夹，双击 `start.bat`（首次会自动安装依赖，之后就秒开）
+### 方式一：用 start.bat（推荐 · 轻量、启动快）
 
-### 第一步：下载
+1. 安装 [Python 3.8+](https://www.python.org/downloads/)（安装时务必勾选 **Add Python to PATH**）
+2. 下载本仓库源码：`git clone https://github.com/user-A100/THU-EAT.git`（或网页上点绿色 `Code` → `Download ZIP` 解压）
+3. 进入文件夹，双击 `start.bat`（首次会自动安装依赖，之后就秒开）
 
-去右侧 [Releases](https://github.com/user-A100/THU-EAT/releases) → 下载 `THUeat.exe`
+> 💡 启动后弹出一个黑窗口（不要关），浏览器会自动打开页面。
+> 第一次点「🔑 一键登录清华」时会自动下载浏览器组件 chromium（约 150MB，**仅这一次**；只想用「手动复制 Cookie」的话完全不用下）。
 
-### 第二步：双击打开
+### 方式二：用 exe（不想装 Python 时）
 
-双击 `THUeat.exe`，会弹出一个黑窗口（不要关），然后浏览器自动打开一个页面。
+如果你不方便装 Python，可以用打包好的 `THUeat.exe`：
 
-### 第三步：加载示例数据
+1. 去右侧 [Releases](https://github.com/user-A100/THU-EAT/releases) → 下载 `THUeat.exe`
+2. 双击运行，弹出黑窗口（不要关），浏览器自动打开
+
+> ⚠️ exe 每次启动都要先解压内置文件，**启动比 start.bat 慢**（黑窗口会停一会儿），体积也更大（约 122MB）。能装 Python 的话还是推荐方式一。首次一键登录同样会下载 chromium（约 150MB）。
+
+### 加载示例数据
 
 刚打开是空的。点击头像进入「**配置与同步**」→ 点「**加载示例数据**」→ 回到「数据看板」，就能看到效果了。
 
 ### 以后想用了
 
-再双击 `THUeat.exe` 就行。（需要自己重新同步数据）
+再双击 `start.bat`（或 `THUeat.exe`）就行。（需要自己重新同步数据）
 
 ---
 

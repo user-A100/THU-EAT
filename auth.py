@@ -48,6 +48,15 @@ PROFILE_DIR = config.DATA_DIR / ".browser_profile"
 PROFILE_LOCKS = ("SingletonLock", "SingletonCookie", "SingletonSocket")
 LOCK_PID_RE = re.compile(r"-(\d+)$")
 
+# 打包后把 chromium 装到 exe 同目录的 .browsers/（用户可写、重启不丢）；
+# 开发态不设此变量，沿用系统缓存 ~/AppData/Local/ms-playwright，避免重复下 400MB。
+# 必须在 playwright 被导入前设置——auth 在 app 启动时即导入，登录才懒加载 playwright，时序满足。
+if getattr(sys, "frozen", False):
+    BROWSERS_DIR = config.BASE_DIR / ".browsers"
+    os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", str(BROWSERS_DIR))
+else:
+    BROWSERS_DIR = None
+
 
 def _safe_close(context):
     try:
@@ -181,8 +190,37 @@ class LoginSession:
 
     # ---------------- 内部：启动 persistent context ----------------
 
+    def _install_chromium(self) -> bool:
+        """首次使用：用 playwright 自带 node 驱动下载 chromium 到 PLAYWRIGHT_BROWSERS_PATH。
+
+        冻结态下 sys.executable 是 exe 本身，旧的 ``python -m playwright install`` 走不通；
+        改为直接调 driver/package/cli.js（PyInstaller 已把它打进来）。下载约 150MB、可能耗时
+        数分钟，期间把进度提示写进 self.message 供前端轮询展示。
+        """
+        try:
+            from playwright._impl._driver import compute_driver_executable, get_driver_env
+        except Exception as e:
+            self.message = f"无法准备浏览器组件：{e}"
+            return False
+        self.message = "首次登录：正在下载浏览器组件 chromium（约 150MB），请耐心等待……"
+        node, cli = compute_driver_executable()
+        try:
+            subprocess.run(
+                [node, cli, "install", "chromium"],
+                env=get_driver_env(),
+                check=False,
+                timeout=600,
+            )
+            return True
+        except subprocess.TimeoutExpired:
+            self.message = "浏览器组件下载超时，请检查网络后重试"
+            return False
+        except Exception as e:
+            self.message = f"浏览器组件下载失败：{e}"
+            return False
+
     def _launch_persistent(self, p, headless: bool):
-        """launch_persistent_context：清理 stale 锁 + 自动安装 chromium 兜底。"""
+        """launch_persistent_context：清理 stale 锁 + 缺 chromium 时自动安装兜底。"""
         clear_stale_profile_locks()
         if is_browser_profile_in_use():
             raise RuntimeError("上次的登录浏览器窗口还开着，请先关闭弹出的 Chromium 窗口后再试。")
@@ -204,11 +242,9 @@ class LoginSession:
         try:
             return p.chromium.launch_persistent_context(**kwargs)
         except Exception:
-            # 可能未装 chromium，自动安装后重试
-            subprocess.run(
-                [sys.executable, "-m", "playwright", "install", "chromium"],
-                check=False,
-            )
+            # 可能未装 chromium：装一次再重试；装失败则抛出，由调用方报真实错误
+            if not self._install_chromium():
+                raise
             return p.chromium.launch_persistent_context(**kwargs)
 
     # ---------------- 内部：两条登录路径 ----------------

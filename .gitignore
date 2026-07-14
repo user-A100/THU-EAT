@@ -1,6 +1,9 @@
 # 用户数据（含 cookie、学号、消费记录），切勿提交或分享
 data/
 
+# 打包后首次登录自动下载的 chromium（约 150MB+，用户本地生成，勿入库）
+.browsers/
+
 # Python
 __pycache__/
 *.pyc
