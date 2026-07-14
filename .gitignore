@@ -40,3 +40,13 @@ build_log.txt
 
 # 浏览器下载的临时文件名
 file (*).svg
+
+# 冗余/旧版素材副本（正本已在 static/ 与 static/pic/ 下）
+/Cant.png
+/PIC/
+/eati.png
+/gogo.png
+/gogo_icon_preview.png
+/lloo.png
+/static/logo.svg
+/static/slider1-2.svg
