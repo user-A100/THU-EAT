@@ -28,3 +28,15 @@ dist/
 # 系统
 .DS_Store
 Thumbs.db
+
+# 备份数据（本地备份，切勿入库）
+backups/
+
+# 构建日志
+build_log.txt
+
+# Windows 快捷方式
+*.lnk
+
+# 浏览器下载的临时文件名
+file (*).svg
