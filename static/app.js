@@ -2301,8 +2301,31 @@ function _ebtiShowResult() {
   // 左上画像：显示对应 AI 生成的人物画像
   var portrait = $("ebti-portrait");
   if (portrait) {
+    var portraitFiles = {
+      "A-WUU": "A-WUU-v3.png",
+      "CAVE": "CAVE-review.png",
+      "CHON-G": "CHON-G-review-v5.png",
+      "COPY": "COPY-review.png",
+      "CTRL": "CTRL-review-v4.png",
+      "DARK": "DARK-review.png",
+      "DASH": "DASH-review.png",
+      "FOMO": "FOMO-v3.png",
+      "GOBL": "GOBL-v3.png",
+      "HOST": "HOST-review.png",
+      "IRON": "IRON-review.png",
+      "LOOP": "LOOP-review.png",
+      "MONK": "MONK-review.png",
+      "MOU-se": "MOU-se-review.png",
+      "OOOO": "OOOO-review.png",
+      "PICK": "PICK-review.png",
+      "SHEP": "SHEP-v5.png",
+      "SOLO": "SOLO-v3.png",
+      "ST-uCK": "ST-uCK-review-v2.png",
+      "VIBE": "VIBE-review.png",
+      "YEEE": "YEEE-review-v4.png"
+    };
     portrait.innerHTML =
-      '<img class="ebti-portrait-img" src="/static/pic/' + encodeURIComponent(arch.id) + '.jpg" alt="' + arch.name + '" ' +
+      '<img class="ebti-portrait-img" src="/static/pic/' + encodeURIComponent(portraitFiles[arch.id]) + '" alt="' + arch.name + '" ' +
       'onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<div class=\\\'ebti-portrait-icon\\\'>🤖</div><div class=\\\'ebti-portrait-label\\\'>AI 饮食性格画像</div>\'">' +
       '<div class="ebti-portrait-label">' + arch.name + ' 画像</div>';
   }

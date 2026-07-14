@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EATi · 你的食堂人格是什么？</title>
+<style>
+:root {
+  --purple: #7B2D8E; --purple-light: #B87FD9; --purple-dark: #4A1A56;
+  --bg: #faf8fc; --card: #fff; --ink: #1a1a2e; --muted: #888; --border: #e8e0ef;
+}
+@media (prefers-color-scheme: dark) {
+:root { --bg: #1a1a2e; --card: #252540; --ink: #eee; --muted: #999; --border: #3a3050; }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+.container { max-width: 600px; width: 100%; padding: 24px 16px; }
+.page { display: none; }
+.page.active { display: block; }
+
+/* 开始页 */
+.hero { text-align: center; padding: 48px 0 32px; }
+.hero h1 { font-size: 34px; font-weight: 900; background: linear-gradient(135deg, var(--purple), var(--purple-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+.hero .sub { color: var(--muted); font-size: 15px; margin-bottom: 8px; }
+.hero .tagline { font-size: 14px; color: var(--muted); margin-bottom: 32px; }
+.hero .badge-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 32px; }
+.hero .badge { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; }
+.btn { display: inline-block; padding: 14px 48px; border-radius: 28px; font-size: 17px; font-weight: 700; border: none; cursor: pointer; transition: .2s; font-family: inherit; }
+.btn-primary { background: var(--purple); color: #fff; }
+.btn-primary:hover { background: var(--purple-dark); }
+.btn-outline { background: transparent; border: 2px solid var(--purple); color: var(--purple); padding: 12px 24px; font-size: 14px; border-radius: 24px; }
+.btn-outline:hover { background: var(--purple); color: #fff; }
+
+/* 进度条 */
+.progress-wrap { margin-bottom: 20px; }
+.progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--purple); transition: width .3s; }
+.progress-text { text-align: right; font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+/* 题目 */
+.q-card { background: var(--card); border-radius: 16px; padding: 28px 24px; margin-bottom: 16px; border: 1px solid var(--border); }
+.q-num { font-size: 13px; color: var(--purple); font-weight: 700; margin-bottom: 8px; }
+.q-text { font-size: 20px; font-weight: 700; line-height: 1.5; margin-bottom: 24px; }
+.q-opts { display: flex; flex-direction: column; gap: 10px; }
+.q-opt { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 2px solid var(--border); border-radius: 12px; cursor: pointer; transition: .15s; font-size: 15px; }
+.q-opt:hover { border-color: var(--purple-light); background: rgba(123,45,142,0.04); }
+.q-opt.selected { border-color: var(--purple); background: rgba(123,45,142,0.08); }
+.q-opt .radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.q-opt.selected .radio { border-color: var(--purple); }
+.q-opt.selected .radio::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--purple); }
+
+/* 结果页 */
+.result { text-align: center; padding: 16px 0; }
+.result .type-img { width: 180px; height: 180px; border-radius: 16px; object-fit: cover; border: 3px solid var(--purple-light); margin-bottom: 16px; }
+.result .type-icon-row { font-size: 56px; margin-bottom: 8px; }
+.result .type-name { font-size: 30px; font-weight: 900; margin-bottom: 4px; }
+.result .type-full { font-size: 16px; color: var(--muted); margin-bottom: 10px; }
+.result .type-desc { font-size: 15px; line-height: 1.7; margin-bottom: 16px; max-width: 400px; margin-left: auto; margin-right: auto; }
+
+/* 雷达图 */
+.radar-wrap { display: flex; justify-content: center; margin: 8px 0 16px; }
+
+/* 维度条 */
+.dim-bars { margin-bottom: 20px; max-width: 400px; margin-left: auto; margin-right: auto; }
+.dim-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; }
+.dim-label { width: 56px; text-align: right; flex-shrink: 0; }
+.dim-bar-wrap { flex: 1; height: 16px; background: var(--border); border-radius: 8px; overflow: hidden; }
+.dim-bar-fill { height: 100%; border-radius: 8px; transition: width .8s ease; }
+.dim-score { width: 28px; font-weight: 700; font-size: 13px; flex-shrink: 0; text-align: center; }
+
+/* 分享区 */
+.share-section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+.share-section h3 { font-size: 15px; margin-bottom: 12px; }
+.share-card { background: var(--card); border: 2px solid var(--purple-light); border-radius: 16px; padding: 20px; text-align: center; max-width: 340px; margin: 0 auto; }
+.share-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+
+/* 结果重测按钮 */
+.retake-wrap { text-align: center; margin-top: 24px; }
+
+.footer { text-align: center; padding: 32px 0 16px; color: var(--muted); font-size: 12px; }
+.footer a { color: var(--purple-light); text-decoration: none; }
+
+@media (max-width: 480px) {
+  .hero h1 { font-size: 26px; }
+  .q-text { font-size: 17px; }
+  .container { padding: 16px 12px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ==================== 开始页 ==================== -->
+<div class="page active" id="page-start">
+  <div class="hero">
+    <div style="font-size:56px;margin-bottom:16px">🍜</div>
+    <h1>你的食堂人格是什么？</h1>
+    <p class="sub">Eating Appetite Type Indicator</p>
+    <p class="tagline">30 道情境题 · 五维解码 · 21 种食堂人格</p>
+    <button class="btn btn-primary" onclick="startQuiz()">开始测试</button>
+    <p style="margin-top:12px;font-size:12px;color:var(--muted)">约 5 分钟 · 纯前端计算 · 不上传任何数据</p>
+  </div>
+</div>
+
+<!-- ==================== 答题页 ==================== -->
+<div class="page" id="page-quiz">
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="pf" style="width:0%"></div></div>
+    <div class="progress-text" id="pt">1 / 30</div>
+  </div>
+  <div class="q-card" id="qc"></div>
+  <p style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:12px">💡 方向键切换 · 数字键 1-5 快捷选择 · Enter 确认</p>
+  <button class="btn btn-primary" style="width:100%" id="bn" onclick="nextQ()" disabled>下一题</button>
+</div>
+
+<!-- ==================== 结果页 ==================== -->
+<div class="page" id="page-result">
+  <div class="result" id="result-content"></div>
+  <div class="retake-wrap"><button class="btn btn-outline" onclick="retakeQuiz()">🔄 重新测试</button></div>
+</div>
+
+<div class="footer">
+  Powered by <a href="https://github.com/user-A100/THU-EAT" target="_blank">THU Eat</a> · 数据全程本地计算
+</div>
+
+</div>
+
+<script>
+// ======================== 数据定义 ========================
+
+const DIMS = ['果断性','秩序感','开放性','社交性','意志力'];
+const DIM_COLORS = ['#E74C3C','#3498DB','#2ECC71','#F39C12','#9B59B6'];
+
+// 30 题（与主程序完全一致），每维度 6 题，选项依次对应 5/4/3/2/1 分
+const Q = [
+  // 果断性 1-3
+  {d:0, t:'你走进食堂，面对十多个窗口，你通常？', o:['快速锁定目标，毫不犹豫','看两三遍后决定','逛完一圈再做决定','反复比较，很难决定','最后随便点一个，常常后悔']},
+  {d:0, t:'面对一份没见过的陌生菜单窗口时？', o:['扫一眼凭直觉直接点','快速找到感兴趣的几个再挑','选一个没吃过的，当开盲盒','要问同伴或阿姨推荐','详细看完每个菜再决定']},
+  {d:0, t:'发现点了一份不喜欢的菜，你会？', o:['立刻换掉，重新点别的','吃两口看看值不值得吃完','不吃这个菜了，只吃剩下的菜','勉强吃完但心里不爽','不能浪费，坚持吃完']},
+  // 秩序感 4-6
+  {d:1, t:'对于自己的饮食规则（定时吃饭／不吃某种食物）？', o:['严格遵守，极少破例','大多数时候能遵守','看情况，有时会破个例','有规则但经常坚持不住','没什么固定的饮食规则']},
+  {d:1, t:'吃饭时你习惯的进食顺序是怎样的？', o:['严格按顺序，先菜后饭绝不混','大致有个大顺序但不死板','混着吃，夹到什么吃什么','什么方便先吃什么','完全没注意过这个问题']},
+  {d:1, t:'对于每顿吃多少的控制？', o:['精确控制，按需定量搭配','大致控制，差不多就可以','看心情，时多时少','好吃就多吃，不饿就少吃','吃饱为止，从不考虑分量']},
+  // 开放性 7-9
+  {d:2, t:'在食堂看到一个从没吃过的窗口／新菜式？', o:['立刻去试，超爱新鲜感','挺有兴趣，下次会去试试','先看看别人点的怎么样','等朋友推荐过后再说','还是选自己吃惯的，稳妥第一']},
+  {d:2, t:'遇到异国风味或从未接触过的菜系？', o:['超感兴趣，主动搜攻略去试新','身边有人约就跟着去尝尝','不主动，但被拉去也不会拒绝','先观望，看别人评价好坏再说','不太感兴趣，基本只吃中餐']},
+  {d:2, t:'你平时随身带零食吗？', o:['包里永远有吃的，像移动小卖部','经常带，以防随时会饿','偶尔带，看当天心情','很少带，只有出远门才备一点','从不带零食，只吃正顿']},
+  // 社交性 10-12
+  {d:3, t:'朋友突然约你一起去吃饭？', o:['秒回复好呀走了走了','通常都会答应一起去','看心情，也看和谁约','嘴上答应，其实更想一个人吃','婉拒，我习惯自己安静吃']},
+  {d:3, t:'聚餐时你一般扮演什么角色？', o:['我是发起人，张罗选地儿点菜','积极参与讨论去哪吃点什么','跟着大家，随大流就好','默默参与，不太发言','能不去就不去，社恐现场']},
+  {d:3, t:'一个人吃饭的时候你的感受？', o:['觉得孤单，特别想找人一起吃','可以接受但更喜欢有人一起','还行吧，没什么特别的感觉','挺自在的，享受不需要说话的清净','最喜欢一个人，不用跟任何人说话']},
+  // 意志力 13-15
+  {d:4, t:'面前摆着高热量又特别诱人的食物？', o:['完全不碰，严格控制着','偶尔破例一次可以原谅自己','内心斗争好久，然后吃一点','经常看完忍不住，吃完再后悔','从不克制，想吃就吃，开心最重要']},
+  {d:4, t:'压力大或情绪低落的时候，你的食欲？', o:['完全不受影响，照常吃饭','轻微影响但还在可控范围','有时会靠吃更多来缓解','疯狂暴食发泄情绪','完全没胃口，什么都吃不下']},
+  {d:4, t:'关于饮食计划的执行（减脂／增肌／养生等）？', o:['有详细计划而且严格执行','有计划但会根据实际灵活调整','偶尔做计划，但坚持不下来','很少做饮食计划','随心所欲，从不计划']},
+
+  // 第二组 — 果断性 16-18
+  {d:0, t:'和朋友一起去食堂，两人对吃什么意见不一时？', o:['立刻提个方案一拍即合','快速协商很快达成一致','各吃各的，互不耽误','让对方决定，自己都可以','纠结半天最后还是随对方']},
+  {d:0, t:'点外卖时的决策习惯是？', o:['打开App直奔常点店铺秒下单','快速浏览推荐后直接下单','对比两三家再决定','反复看评论翻来覆去定不下','常常选了又取消换成别的']},
+  {d:0, t:'排长队等餐时旁边的窗口突然开了？', o:['毫不犹豫立刻换到新窗口','观察一下大概在卖什么再决定','看别人换不换，跟风','纠结要换还是要继续等','坚持继续等，不想冒险']},
+  // 秩序感 19-21
+  {d:1, t:'今天吃饭时间被突发事件打乱了？', o:['尽快调整，恢复原来的节奏','今天随便，明天一定恢复','无所谓，有饭吃就行','干脆今天就不按点吃了','我从来就没有固定饭点']},
+  {d:1, t:'关于餐前洗手与用餐卫生的习惯？', o:['严格流程，每次必然做到','基本都会注意清洁','看情况，有时会省略','想起来了才会做','不太在意这些细节']},
+  {d:1, t:'吃饭的时候你会同时做其他事情吗？', o:['从不，专心吃饭是对食物的尊重','偶尔瞥一眼手机消息','经常边吃边刷视频','基本都在边吃边工作/看书','吃饭就是背景音，一直在忙别的']},
+  // 开放性 22-24
+  {d:2, t:'朋友盛情推荐一道你看着觉得不太好吃的菜？', o:['一定试试，朋友推荐的不会差','试试看吧，万一真的好吃呢','犹豫一下尝一小口','敷衍答应下次再说','坚决不试，看着就没胃口']},
+  {d:2, t:'对于奇特的搭配（甜咸混搭、水果入菜等）？', o:['超喜欢，我经常自己发明奇怪搭配','愿意尝试别人推荐的创新搭配','有点保守但偶尔会好奇','觉得奇怪，不太想试','传统搭配才是正道']},
+  {d:2, t:'在自助餐或自选模式餐厅你的策略是？', o:['每种没吃过的都来一小份尝鲜','以喜欢的为主夹一点新菜','主要还是拿自己熟悉的','只夹自己确定好吃的东西','雷打不动永远吃那几样']},
+  // 社交性 25-27
+  {d:3, t:'吃到一道特别惊艳的菜你会？', o:['立刻拍照发群里/朋友圈疯狂安利','告诉身边的人推荐他们去','下次约朋友一起来吃','自己默默记住这个窗口','不会特别做什么，吃了就过了']},
+  {d:3, t:'和不熟的人坐在一起吃饭？', o:['很快就能聊开，社交无压力','可以正常客气交流','有点小尴尬但能应付','默默低头快吃不太说话','浑身不自在只想快点吃完跑路']},
+  {d:3, t:'你的"饭搭子"情况最接近？', o:['有一个大圈子经常换不同人吃','有两三个固定饭搭子','有一个固定饭搭子','偶尔会找认识的熟人一起吃','基本没有饭搭子，习惯自己吃']},
+  // 意志力 28-30
+  {d:4, t:'深夜饿了但已经刷过牙准备睡了？', o:['坚决不吃，这是原则问题','喝点水忍忍就过去了','内心斗争一下看饿的程度','吃一点健康的东西垫垫','刷牙算什么，吃饱了再刷一次']},
+  {d:4, t:'别人在你面前吃你最爱的食物但你正在控制饮食？', o:['完全不为所动，目标第一','觉得馋但能管住自己','看对方吃一点解馋','忍了一会儿没忍住也去吃了','瞬间破防，控制什么的一会儿再说']},
+  {d:4, t:'别人在你旁边咔咔吃零食，而你正在控制饮食？', o:['完全不为所动，目标最重要','有点馋但能管住自己','内心挣扎一下，讨一小口尝尝','忍了一会儿后伸手过去要了一点','瞬间破防，一起大吃特吃']},
+];
+
+// 18 种基础人格 — 五维向量 (d,o,p,s,w) 与主程序一致
+const P = [
+  {id:'FOMO',  name:'FOMO吃货', full:'Fear Of Missing Out', desc:'别人吃了你没吃——焦虑。你的美食版图永远在扩张，朋友圈的食堂打卡是你活着的证据。',icon:'📱',v:[18,16,24,22,12]},
+  {id:'MONK',  name:'苦行僧',   full:'Monk 僧侣',            desc:'食物是修行。低脂轻断食不是目的，是信仰。你的饮食账单干净得像财务报表。',icon:'🧘',v:[20,24,12,14,24]},
+  {id:'GOBL',  name:'哥布林',   full:'Goblin 见啥抢啥',      desc:'暴风吸入！你的字典里没有"不好吃"三个字。饭后摸着圆滚滚的肚子是战绩。',icon:'👹',v:[18,12,23,18,11]},
+  {id:'SOLO',  name:'独食侠',   full:'Solo 单刷',            desc:'一个人十分钟解决。社交多余，独食才是自由。你的餐桌就是整个世界。',icon:'🥡',v:[24,16,14,11,18]},
+  {id:'LOOP',  name:'循环侠',   full:'Loop 死循环',          desc:'菜单是一首单曲循环的歌。同一道菜吃一个学期，安全感在预期之内。',icon:'🔁',v:[18,24,11,16,20]},
+  {id:'CTRL',  name:'CTRL人',   full:'Control 掌控',         desc:'一切尽在掌控。从点餐到结账不到同伴一半时间。食堂于你是精密的操作系统。',icon:'🎮',v:[24,20,14,16,24]},
+  {id:'CAVE',  name:'穴居人',   full:'Cave 洞穴',            desc:'同一个角落、同一个座位、同一份饭。最好谁也别来打扰你的小世界。',icon:'🕳️',v:[14,16,11,11,16]},
+  {id:'SHEP',  name:'跟风狗',   full:'Sheep 羊群',           desc:'同桌点啥你点啥。从众是一种永不踩雷的算法。你管这叫"群体智慧"。',icon:'🐑',v:[12,14,16,22,11]},
+  {id:'DASH',  name:'速通食客', full:'Dash 冲刺',            desc:'别人还在看菜单你已经吃上了。新窗口第一个冲、第一个吃完走人。吃饭像速通。',icon:'🏃',v:[24,16,24,18,16]},
+  {id:'HOST',  name:'组局王',   full:'Host 主持人',          desc:'组织饭局是你的天赋技能。手机里永远有两三个饭搭子群，餐桌就是你的直播间。',icon:'🎪',v:[18,24,16,22,18]},
+  {id:'CHON-G',name:'炫就完了', full:'Chonky-Gang 肉肉帮',   desc:'没有规则、没有计划、没有节制。干了再说！不管多大碗都相信自己的实力。',icon:'🍖',v:[14,11,20,18,11]},
+  {id:'YEEE',  name:'耶耶耶',   full:'Yeet 莽就完了',        desc:'冲动比理性更适合食堂。看上了就冲，嘴里还喊着耶耶耶。纠结是什么，能吃吗？',icon:'💨',v:[24,11,20,16,14]},
+  {id:'COPY',  name:'复读鸡',   full:'Copy 复制',            desc:'"你吃啥我就吃啥。"跟风点菜永不踩雷，同桌就是你的私人菜单推荐系统。',icon:'🐔',v:[11,16,16,23,16]},
+  {id:'ST-uCK',name:'卡住了',   full:'Stuck 卡死',           desc:'菜单从头看到尾、再从尾看回头。但一旦选了就不改——选择困难但选择后无比坚定。',icon:'🔒',v:[10,24,11,16,20]},
+  {id:'IRON',  name:'铁胃侠',   full:'Iron 钢铁意志',        desc:'面对铁板烧面无波澜。说不吃就不吃，节律才是主线。铁胃铁律，金刚不坏。',icon:'🦾',v:[18,18,11,14,24]},
+  {id:'OOOO',  name:'哦哦哦',   full:'哦哦哦哦 全都OK',      desc:'哦是这个也好，哦是那个也行。早已看透食堂本质，佛系的核心是选择不纠结。',icon:'🤷',v:[18,14,18,20,16]},
+  {id:'PICK',  name:'赛博挑食', full:'Picky 挑剔',           desc:'一张看不见的可食用清单。二十年验证的饮食红线，一口不碰。宁饿不屈。',icon:'🥦',v:[12,18,11,12,16]},
+  {id:'MOU-se',name:'仓鼠人',   full:'Mouse 仓鼠',           desc:'嘴里永远在嚼，兜里永远有零食。书包有零食分区，腮帮子就是移动仓库。',icon:'🐹',v:[14,12,24,22,11]},
+];
+
+// 3 种隐藏人格（优先匹配）
+const H = [
+  {id:'DARK',  name:'暗夜食者', full:'深夜的饥饿是一种信仰', desc:'凌晨食堂是你与月亮之间的秘密。夜晚和食物只属于自己，黑暗中一口胜过白天十口。',icon:'🌛', cond:function(s){return s[4]<=10&&s[3]<=14;}},
+  {id:'A-WUU', name:'食堂暴龙', full:'啊呜——午餐即是征伐',   desc:'五项全能，没有弱点。食堂不是餐厅，是你的猎场。嗷呜——所有人让开，暴龙来了。',icon:'🦖', cond:function(s){return s[0]>=24&&s[1]>=24&&s[2]>=24&&s[3]>=24&&s[4]>=24;}},
+  {id:'VIBE',  name:'纯靠感受', full:'凭感觉走凭香味走',      desc:'你不需要地图也不需要攻略。跟着直觉和香味，总能歪打正着撞见最好吃的那一顿。',icon:'✨', cond:function(s){return s[3]>=23&&s[2]>=23&&s[1]<=14;}},
+];
+
+// ======================== 状态 ========================
+let idx = 0;                          // 当前题号
+let ans = new Array(30).fill(0);      // 每题得分 (1-5)
+let selV = 0;                         // 当前键盘/点击选中的选项值
+
+// ======================== 答题 ========================
+
+function startQuiz() {
+  idx = 0; ans = new Array(30).fill(0); selV = 0;
+  switchPage('page-quiz');
+  renderQ();
+}
+
+function switchPage(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function renderQ() {
+  var q = Q[idx]; selV = ans[idx];
+  document.getElementById('pf').style.width = (idx/30*100)+'%';
+  document.getElementById('pt').textContent = (idx+1)+' / 30';
+  var h = '<div class="q-num">第 '+(idx+1)+' 题 · '+DIMS[q.d]+'</div>';
+  h += '<div class="q-text">'+q.t+'</div><div class="q-opts">';
+  for (var i=0; i<q.o.length; i++) {
+    var v = 5-i;
+    var sel = selV===v ? ' selected' : '';
+    h += '<div class="q-opt'+sel+'" data-v="'+v+'" onmousedown="pick('+v+')"><span style="color:var(--muted);font-size:12px;min-width:16px">'+(i+1)+'</span><div class="radio"></div><span>'+q.o[i]+'</span></div>';
+  }
+  h += '</div>';
+  document.getElementById('qc').innerHTML = h;
+  document.getElementById('bn').disabled = ans[idx]===0;
+}
+
+function pick(v) {
+  ans[idx] = v; selV = v;
+  var opts = document.getElementById('qc').querySelectorAll('.q-opt');
+  for (var i=0; i<opts.length; i++) {
+    opts[i].classList.remove('selected');
+    if (parseInt(opts[i].getAttribute('data-v'))===v) opts[i].classList.add('selected');
+  }
+  document.getElementById('bn').disabled = false;
+}
+
+function nextQ() {
+  if (idx < 29) { idx++; renderQ(); }
+  else { calc(); }
+}
+
+// 键盘操作
+document.addEventListener('keydown', function(e) {
+  var pageQuiz = document.getElementById('page-quiz');
+  if (!pageQuiz.classList.contains('active')) return;
+  var k = e.key;
+  if (k === 'Enter') {
+    e.preventDefault();
+    if (!document.getElementById('bn').disabled) nextQ();
+  } else if (k === 'ArrowUp' || k === 'ArrowLeft') {
+    e.preventDefault();
+    if (selV < 5) { selV++; updateSel(); }
+  } else if (k === 'ArrowDown' || k === 'ArrowRight') {
+    e.preventDefault();
+    if (selV > 1) { selV--; updateSel(); }
+  } else if (k >= '1' && k <= '5') {
+    e.preventDefault();
+    selV = parseInt(k);
+    pick(selV);
+    nextQ();
+  }
+});
+
+function updateSel() {
+  var opts = document.getElementById('qc').querySelectorAll('.q-opt');
+  for (var i=0; i<opts.length; i++) {
+    opts[i].classList.remove('selected');
+    if (parseInt(opts[i].getAttribute('data-v'))===selV) opts[i].classList.add('selected');
+  }
+}
+
+// ======================== 计算 ========================
+
+function calc() {
+  // 五维得分：每维度 6 题，每题得分 1-5 → 维度总分 6-30
+  var s = [0,0,0,0,0];
+  for (var i=0; i<30; i++) s[Q[i].d] += ans[i];
+
+  // 先检查隐藏人格
+  var match = null;
+  for (var i=0; i<H.length; i++) {
+    if (H[i].cond(s)) { match = H[i]; break; }
+  }
+  // 未命中则欧氏距离匹配（OOOO 加 25% 距离罚分，避免"全中"泛滥）
+  if (!match) {
+    var best = Infinity, bestI = 0;
+    for (var i=0; i<P.length; i++) {
+      var d2 = 0;
+      for (var j=0; j<5; j++) d2 += (s[j]-P[i].v[j])*(s[j]-P[i].v[j]);
+      var dist = Math.sqrt(d2);
+      if (P[i].id==='OOOO') dist *= 1.25;
+      if (dist < best) { best = dist; bestI = i; }
+    }
+    match = P[bestI];
+  }
+
+  showResult(match, s);
+}
+
+// ======================== 结果展示 ========================
+
+function imgPath(id) {
+  // 最终确认的人格画像版本
+  var portraits = {
+    'A-WUU': 'A-WUU-v3.png',
+    'CAVE': 'CAVE-review.png',
+    'CHON-G': 'CHON-G-review-v5.png',
+    'COPY': 'COPY-review.png',
+    'CTRL': 'CTRL-review-v4.png',
+    'DARK': 'DARK-review.png',
+    'DASH': 'DASH-review.png',
+    'FOMO': 'FOMO-v3.png',
+    'GOBL': 'GOBL-v3.png',
+    'HOST': 'HOST-review.png',
+    'IRON': 'IRON-review.png',
+    'LOOP': 'LOOP-review.png',
+    'MONK': 'MONK-review.png',
+    'MOU-se': 'MOU-se-review.png',
+    'OOOO': 'OOOO-review.png',
+    'PICK': 'PICK-review.png',
+    'SHEP': 'SHEP-v5.png',
+    'SOLO': 'SOLO-v3.png',
+    'ST-uCK': 'ST-uCK-review-v2.png',
+    'VIBE': 'VIBE-review.png',
+    'YEEE': 'YEEE-review-v4.png'
+  };
+  return 'static/pic/' + portraits[id];
+}
+
+function showResult(m, s) {
+  switchPage('page-result');
+  var h = '';
+  h += '<div class="type-icon-row">'+m.icon+'</div>';
+  h += '<img class="type-img" src="'+imgPath(m.id)+'" alt="" onerror="this.style.display=\'none\'">';
+  h += '<div class="type-name">'+m.name+'</div>';
+  h += '<div class="type-full">'+m.full+'</div>';
+  h += '<div class="type-desc">'+m.desc+'</div>';
+
+  // 雷达图
+  h += '<div class="radar-wrap"><canvas id="radar" width="280" height="280"></canvas></div>';
+
+  // 维度条
+  h += '<div class="dim-bars">';
+  for (var i=0; i<5; i++) {
+    var pct = Math.round(s[i]/30*100);
+    var lbl = ['低','中','高'][pct<47?0:pct<80?1:2];
+    h += '<div class="dim-row"><span class="dim-label">'+DIMS[i]+'</span>';
+    h += '<div class="dim-bar-wrap"><div class="dim-bar-fill" style="width:'+pct+'%;background:'+DIM_COLORS[i]+'"></div></div>';
+    h += '<span class="dim-score">'+s[i]+'</span></div>';
+  }
+  h += '</div>';
+
+  // 分享区
+  var shareText = '我在 EATi 食堂人格测试中测出了「'+m.name+'」——'+m.full+'。你的食堂人格是什么？';
+  h += '<div class="share-section"><h3>分享你的结果</h3>';
+  h += '<div class="share-card"><p style="font-size:13px;color:var(--muted);margin-bottom:4px">我的食堂人格</p>';
+  h += '<p style="font-size:28px;font-weight:900;margin:4px 0">'+m.icon+' '+m.name+'</p>';
+  h += '<p style="font-size:13px;color:var(--muted)">'+m.desc+'</p></div>';
+  h += '<div class="share-btns">';
+  h += '<button class="btn btn-outline" onclick="copyShare(\''+shareText.replace(/'/g,"\\'")+'\')">📋 复制分享语</button>';
+  h += '<button class="btn btn-outline" onclick="shareImage()">📸 截图分享</button>';
+  h += '</div></div>';
+
+  document.getElementById('result-content').innerHTML = h;
+
+  // 画雷达图
+  setTimeout(function(){ drawRadar(s); }, 100);
+}
+
+// ======================== 雷达图 (Canvas) ========================
+function drawRadar(scores) {
+  var c = document.getElementById('radar');
+  if (!c) return;
+  var ctx = c.getContext('2d');
+  var w = c.width, h = c.height;
+  var cx = w/2, cy = h/2, r = 100;
+  var n = 5;
+
+  ctx.clearRect(0,0,w,h);
+
+  // 背景网格
+  for (var lvl=1; lvl<=5; lvl++) {
+    ctx.beginPath();
+    for (var i=0; i<n; i++) {
+      var ang = Math.PI/2 + i*2*Math.PI/n;
+      var rr = r*lvl/5;
+      var x = cx + rr*Math.cos(ang);
+      var y = cy - rr*Math.sin(ang);
+      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // 轴线
+  for (var i=0; i<n; i++) {
+    var ang = Math.PI/2 + i*2*Math.PI/n;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx+r*Math.cos(ang), cy-r*Math.sin(ang));
+    ctx.strokeStyle = '#ddd';
+    ctx.stroke();
+  }
+
+  // 数据区域
+  ctx.beginPath();
+  for (var i=0; i<n; i++) {
+    var ang = Math.PI/2 + i*2*Math.PI/n;
+    var rr = r*scores[i]/30;
+    var x = cx + rr*Math.cos(ang);
+    var y = cy - rr*Math.sin(ang);
+    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(123,45,142,0.2)';
+  ctx.fill();
+  ctx.strokeStyle = '#7B2D8E';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 数据点
+  for (var i=0; i<n; i++) {
+    var ang = Math.PI/2 + i*2*Math.PI/n;
+    var rr = r*scores[i]/30;
+    var x = cx + rr*Math.cos(ang);
+    var y = cy - rr*Math.sin(ang);
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, 2*Math.PI);
+    ctx.fillStyle = '#7B2D8E';
+    ctx.fill();
+  }
+
+  // 标签
+  ctx.fillStyle = '#666';
+  ctx.font = '13px system-ui, "PingFang SC", sans-serif';
+  ctx.textAlign = 'center';
+  for (var i=0; i<n; i++) {
+    var ang = Math.PI/2 + i*2*Math.PI/n;
+    var lx = cx + (r+24)*Math.cos(ang);
+    var ly = cy - (r+24)*Math.sin(ang) + 4;
+    ctx.fillText(DIMS[i], lx, ly);
+  }
+}
+
+// ======================== 分享 ========================
+
+function copyShare(text) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text+'\n👉 来测测你的：'+window.location.href).then(function(){
+      alert('已复制！粘贴到朋友圈或群聊即可分享');
+    });
+  } else {
+    prompt('复制这段文字分享：', text+'\n👉 来测测你的：'+window.location.href);
+  }
+}
+
+function shareImage() {
+  alert('截图方法：\n\niPhone：电源键 + 音量+ 同时按\nAndroid：电源键 + 音量- 同时按\n电脑：Win+Shift+S 或 Command+Shift+4');
+}
+
+function retakeQuiz() {
+  startQuiz();
+}
+</script>
+</body>
+</html>
